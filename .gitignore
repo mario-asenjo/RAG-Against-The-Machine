@@ -33,6 +33,3 @@ moulinette-fedora
 
 # Hermes local state
 .hermes-local/
-hermes/
-scripts/
-AGENTS.md

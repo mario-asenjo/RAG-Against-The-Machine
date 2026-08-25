@@ -26,12 +26,12 @@ class RagCli:
     def index(self, max_chunk_size: int = 2000) -> NoReturn:
         """Placeholder for the mandatory index command."""
         del max_chunk_size
-        return self._not_implemented("index")
+        self._not_implemented("index")
 
     def search(self, query: str, k: int = 10) -> NoReturn:
         """Placeholder for the mandatory single-query search command."""
         del query, k
-        return self._not_implemented("search")
+        self._not_implemented("search")
 
     def search_dataset(
         self,
@@ -41,12 +41,12 @@ class RagCli:
     ) -> NoReturn:
         """Placeholder for the mandatory dataset search command."""
         del dataset_path, k, save_directory
-        return self._not_implemented("search_dataset")
+        self._not_implemented("search_dataset")
 
     def answer(self, query: str, k: int = 10) -> NoReturn:
         """Placeholder for the mandatory single-query answer command."""
         del query, k
-        return self._not_implemented("answer")
+        self._not_implemented("answer")
 
     def answer_dataset(
         self,
@@ -55,7 +55,7 @@ class RagCli:
     ) -> NoReturn:
         """Placeholder for the mandatory dataset answer command."""
         del student_search_results_path, save_directory
-        return self._not_implemented("answer_dataset")
+        self._not_implemented("answer_dataset")
 
     def evaluate(
         self,
@@ -64,7 +64,7 @@ class RagCli:
     ) -> NoReturn:
         """Placeholder for the local recall evaluation command."""
         del student_search_results_path, dataset_path
-        return self._not_implemented("evaluate")
+        self._not_implemented("evaluate")
 
 
 def main() -> None:

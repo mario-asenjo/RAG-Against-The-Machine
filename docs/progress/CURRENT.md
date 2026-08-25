@@ -6,13 +6,15 @@ M0 — Harness/bootstrap only.
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
 - Minimal Python Fire scaffold exists.
+- Hermes project skill setup is installed through the active Hermes config home.
+- `make check` passes after `uv sync` on the bootstrap scaffold.
 - No retrieval implementation is claimed.
 
 ## Active issue
-None yet. GitHub repository/Project must be inspected before selecting the first issue.
+[#1 Bootstrap harness and Hermes setup](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/1) is in review via PR.
 
 ## Next smallest step
-Create/confirm the GitHub Project and open the first implementation issue: exact Pydantic models + JSON contract tests, unless the existing Project already defines a different Ready issue.
+Start [#2 Implement exact Pydantic exchange models and JSON contract tests](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/2).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.
