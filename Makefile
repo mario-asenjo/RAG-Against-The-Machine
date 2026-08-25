@@ -13,12 +13,12 @@ clean:
 	rm -rf __pycache__ src/__pycache__ tests/__pycache__ .pytest_cache .mypy_cache
 
 lint:
-	uv run flake8 .
-	uv run mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	uv run flake8 src tests scripts
+	uv run mypy src tests scripts --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	uv run flake8 .
-	uv run mypy . --strict
+	uv run flake8 src tests scripts
+	uv run mypy src tests scripts --strict
 
 test:
 	uv run pytest
