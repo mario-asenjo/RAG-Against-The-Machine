@@ -1,0 +1,41 @@
+name: Bug report
+description: Reproducible defect with evaluator-safe acceptance criteria
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Bug summary
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Include exact command/input and observed output/traceback.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: root
+    attributes:
+      label: Suspected root cause / affected invariant
+      description: Leave as unknown if not yet proven.
+  - type: textarea
+    id: scope
+    attributes:
+      label: Fix scope and hard boundary
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance / regression evidence
+      placeholder: "- [ ] Reproduction no longer fails\n- [ ] Regression test added\n- [ ] Required gates green"
+    validations:
+      required: true

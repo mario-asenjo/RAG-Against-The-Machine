@@ -1,0 +1,60 @@
+name: Implementation slice
+description: One vertical, testable implementation slice
+labels: [implementation]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal / problem
+      description: What observable behavior or evaluator requirement must this issue deliver?
+    validations:
+      required: true
+  - type: textarea
+    id: source_context
+    attributes:
+      label: Source context
+      description: Cite subject section, evaluator script behavior, ADR/decision, or parent issue.
+      placeholder: "Subject VI.2; docs/project/03_EVALUATION_CONTRACT.md; parent #..."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Concrete files/components/behaviors allowed in this issue.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Explicit non-goals
+      description: State what must not be pulled into this slice.
+    validations:
+      required: true
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of Done
+      description: Use testable acceptance criteria.
+      placeholder: "- [ ] ...\n- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Expected validation / evidence
+      description: Exact tests, lint/type commands, benchmark rows, or CLI walkthrough expected.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks / compatibility / performance
+      description: Include source-offset/path risks, timing, regressions, or evaluator impact where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / blockers / Project
+      description: Parent/dependency issues and expected Project status/milestone.

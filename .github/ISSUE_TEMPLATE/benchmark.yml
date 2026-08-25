@@ -1,0 +1,38 @@
+name: Retrieval experiment
+description: Measured public-dataset retrieval/chunking experiment
+labels: [performance, retrieval]
+body:
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+      description: What one change is expected to improve which metric and why?
+    validations:
+      required: true
+  - type: textarea
+    id: baseline
+    attributes:
+      label: Baseline evidence
+      description: Commit/config plus docs/code Recall@5 and timing.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Controlled change
+      description: Exact parameter/algorithm change. No private-ground-truth tuning.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance rule
+      description: Define what makes the experiment worth keeping and what regression rejects it.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Reproduction commands
+    validations:
+      required: true

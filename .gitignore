@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime/evaluator data (subject says not to commit large/generated data)
+data/raw/
+data/processed/
+data/datasets/
+data/output/
+evaluations/
+models/
+*.bin
+*.safetensors
+
+# Local evaluator tools
+.local-evaluator/
+moulinette
+moulinette-ubuntu
+moulinette-fedora
+
+# Hermes local state
+.hermes-local/
+hermes/
+scripts/
+AGENTS.md
