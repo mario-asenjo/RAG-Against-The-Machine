@@ -32,3 +32,16 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   `make check` passes with 11 tests.
 - Official Ponytail review (`DietrichGebert/ponytail` at `1b2760d`) found the
   docs-only diff lean already (`net: -0 lines possible`).
+
+## 2026-08-26 — #4 exact corpus loading
+- Added the `SourceDocument` Pydantic exchange model and deterministic loading
+  for the public-ground-truth suffixes `.py`, `.md`, and `.txt`.
+- Preserved CRLF and Unicode by reading strict UTF-8 with newline translation
+  disabled; unsupported files are skipped and accepted invalid files fail fast.
+- Fixture tests cover canonical paths, deterministic order, exact raw text,
+  missing roots, ignored suffixes, and invalid UTF-8.
+- Real-corpus smoke loaded 1,969 documents with exact decoded text and canonical
+  prefixes in 1.392 seconds; no retrieval or recall behavior is claimed.
+- Fresh final evidence: `make check` passes with 14 tests and strict mypy passes.
+- Official Ponytail review (`DietrichGebert/ponytail` at `1b2760d`) found the
+  implementation lean already (`net: -0 lines possible`).
