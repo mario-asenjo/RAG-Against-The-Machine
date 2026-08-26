@@ -1,6 +1,6 @@
 """Smoke tests for the harness before project implementation starts."""
 
-from src.__main__ import RagCli
+from src.adapters.cli import RagCli
 
 
 def test_scaffold_status_is_explicit() -> None:
