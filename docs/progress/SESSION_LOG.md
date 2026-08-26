@@ -45,3 +45,17 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
 - Fresh final evidence: `make check` passes with 14 tests and strict mypy passes.
 - Official Ponytail review (`DietrichGebert/ponytail` at `1b2760d`) found the
   implementation lean already (`net: -0 lines possible`).
+
+## 2026-08-27 — #5 Markdown/text chunking
+- Added `SourceChunk`, a Pydantic source span carrying the exact text slice and
+  locking the half-open `[first_character_index:last_character_index]` width
+  convention.
+- Added a direct string-scanning Markdown/text chunker that groups paragraph-like
+  blocks, preserves CRLF/Unicode, returns no chunks for whitespace-only input,
+  and splits oversized blocks into bounded exact slices.
+- Fixture tests cover block boundaries, exact substring reconstruction,
+  whitespace-only input, invalid max size, and oversized-block splitting.
+- Fresh final evidence: focused text chunking tests pass with 7 tests;
+  `make check` passes with 21 tests.
+- Ponytail full review kept the stdlib/no-dependency implementation; no
+  simplifications applied or rejected.
