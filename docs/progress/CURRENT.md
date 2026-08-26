@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M0 — Foundation / exact corpus loading.
+M1 — Chunking / Markdown-text source spans.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -14,15 +14,17 @@ M0 — Foundation / exact corpus loading.
   seams are covered by tests.
 - Deterministic corpus discovery loads `.py`, `.md`, and `.txt` files in sorted
   order while preserving canonical paths and exact UTF-8 text.
+- Markdown/text chunking preserves half-open `[first_character_index:last_character_index]`
+  spans against exact original text and enforces configurable max chunk size.
 - No retrieval implementation is claimed.
 
 ## Active issue
-[#4](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/4)
-implements safe corpus discovery and exact source text loading.
+[#5](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/5)
+implements bounded Markdown/text chunking with exact character spans.
 
 ## Next smallest step
-After #4 merges, start [#5 Implement bounded Markdown/text chunking with exact
-character spans](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/5).
+After #5 merges, start [#6 Implement bounded Python code chunking with exact
+character spans](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/6).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

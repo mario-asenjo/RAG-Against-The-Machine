@@ -30,6 +30,20 @@ class SourceDocument(BaseModel):
     text: str
 
 
+class SourceChunk(MinimalSource):
+    """A half-open source span plus its exact text slice."""
+
+    text: str
+
+    @model_validator(mode="after")
+    def validate_text_width(self) -> "SourceChunk":
+        """Keep chunk text length aligned with the half-open source span."""
+        expected_width = self.last_character_index - self.first_character_index
+        if len(self.text) != expected_width:
+            raise ValueError("text length must match source span width")
+        return self
+
+
 class UnansweredQuestion(BaseModel):
     """A dataset question before retrieval or answer generation."""
 
