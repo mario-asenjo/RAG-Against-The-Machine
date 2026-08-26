@@ -19,3 +19,8 @@ Project-specific hard constraints live in root `AGENTS.md`. The optional project
 **Status:** accepted.
 
 Every non-trivial implementation slice is issue-backed and synchronized to the existing associated Project when scopes permit. No duplicate board is created to work around missing token scope.
+
+## D-0005 — Modular monolith with hexagonal seams
+**Status:** accepted for #2.
+
+The implementation uses a small modular monolith, not ceremonial hexagonal architecture. `domain` and `application` stay independent from `adapters` and `infrastructure`; ports are added only when a real use case needs replaceable implementations. This keeps mandatory delivery small while allowing later semantic retrieval, hybrid retrieval, incremental indexing, caching, and HTTP API bonuses without moving CLI-owned business logic.

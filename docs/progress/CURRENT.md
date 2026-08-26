@@ -1,20 +1,21 @@
 # Current project state
 
 ## Milestone
-M0 — Harness/bootstrap only.
+M0 — Foundation / data contracts and architecture seams.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
 - Minimal Python Fire scaffold exists.
 - Hermes project skill setup is installed through the active Hermes config home.
 - `make check` passes after `uv sync` on the bootstrap scaffold.
+- Bootstrap PR #3 was merged.
 - No retrieval implementation is claimed.
 
 ## Active issue
-[#1 Bootstrap harness and Hermes setup](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/1) is in review via PR.
+[#2 Implement exact Pydantic exchange models and JSON contract tests](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/2).
 
 ## Next smallest step
-Start [#2 Implement exact Pydantic exchange models and JSON contract tests](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/2).
+Finish #2 with minimal domain/application/infrastructure/adapters seams, Pydantic contracts, boundary tests, local gates, Ponytail review, and PR.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.
