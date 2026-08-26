@@ -23,6 +23,13 @@ class MinimalSource(BaseModel):
         return self
 
 
+class SourceDocument(BaseModel):
+    """An accepted corpus file with its exact original text."""
+
+    file_path: str
+    text: str
+
+
 class UnansweredQuestion(BaseModel):
     """A dataset question before retrieval or answer generation."""
 

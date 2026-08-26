@@ -12,16 +12,17 @@ M0 — Foundation / exact corpus loading.
 - Model/architecture PR #22 was merged and issue #2 is closed.
 - Exact Pydantic exchange contracts and the minimal modular-monolith package
   seams are covered by tests.
+- Deterministic corpus discovery loads `.py`, `.md`, and `.txt` files in sorted
+  order while preserving canonical paths and exact UTF-8 text.
 - No retrieval implementation is claimed.
 
 ## Active issue
-No implementation issue is active. Documentation hygiene
-[#23](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/23)
-records the local supplied-artifact policy after #2.
+[#4](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/4)
+implements safe corpus discovery and exact source text loading.
 
 ## Next smallest step
-Start [#4 Implement safe corpus discovery and exact source text
-loading](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/4).
+After #4 merges, start [#5 Implement bounded Markdown/text chunking with exact
+character spans](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/5).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.
