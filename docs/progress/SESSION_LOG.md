@@ -59,3 +59,21 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   `make check` passes with 21 tests.
 - Ponytail full review kept the stdlib/no-dependency implementation; no
   simplifications applied or rejected.
+
+## 2026-08-27 — #6 Python chunking
+- Added a distinct stdlib `ast`-based Python strategy that starts chunks at
+  top-level decorated functions, async functions, and classes without using
+  AST byte-column offsets.
+- Reused #5's exact bounded range fallback for oversized structures and invalid
+  Python while retaining `python` chunk metadata.
+- Extended `SourceChunk` with `chunk_type` so persisted index records can retain
+  strategy type alongside exact path, half-open span, and text.
+- Focused tests cover module code, decorators, comments, docstrings, CRLF,
+  Unicode, classes/functions, oversized definitions, invalid syntax, empty
+  input, and invalid max size.
+- Fresh local-source smoke: 14 Python files produced 37 chunks with exact
+  reconstruction and a maximum width of 2000 characters.
+- Fresh final evidence: 14 combined chunking tests pass; `make check` passes
+  with 28 tests; strict mypy passes over 22 source files.
+- Ponytail full review retained one AST scan plus the existing fallback; no
+  Protocol, factory, parser dependency, or semantic analysis was added.

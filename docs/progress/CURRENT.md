@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M1 — Chunking / Markdown-text source spans.
+M1 — Chunking / Python structural source spans.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -16,15 +16,18 @@ M1 — Chunking / Markdown-text source spans.
   order while preserving canonical paths and exact UTF-8 text.
 - Markdown/text chunking preserves half-open `[first_character_index:last_character_index]`
   spans against exact original text and enforces configurable max chunk size.
+- Python chunking uses top-level function/class boundaries, includes decorators,
+  preserves exact original spans, and falls back safely for invalid syntax or
+  oversized structures.
 - No retrieval implementation is claimed.
 
 ## Active issue
-[#5](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/5)
-implements bounded Markdown/text chunking with exact character spans.
+[#6](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/6)
+implements bounded Python code chunking with exact character spans.
 
 ## Next smallest step
-After #5 merges, start [#6 Implement bounded Python code chunking with exact
-character spans](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/6).
+After #6 merges, start [#7 Persist first lexical index and implement index
+command](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/7).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

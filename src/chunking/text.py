@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import Literal
 
 from src.domain import SourceChunk, SourceDocument
 
@@ -31,10 +32,16 @@ def chunk_text_document(
         if block_end - block_start > max_chunk_size:
             if pending_end > pending_start:
                 chunks.append(
-                    _make_chunk(document, pending_start, pending_end)
+                    _make_chunk(document, pending_start, pending_end, "text")
                 )
             chunks.extend(
-                _split_range(document, block_start, block_end, max_chunk_size)
+                split_source_range(
+                    document,
+                    block_start,
+                    block_end,
+                    max_chunk_size,
+                    "text",
+                )
             )
             pending_start = None
             pending_end = block_end
@@ -42,13 +49,17 @@ def chunk_text_document(
 
         would_exceed_limit = block_end - pending_start > max_chunk_size
         if pending_end > pending_start and would_exceed_limit:
-            chunks.append(_make_chunk(document, pending_start, pending_end))
+            chunks.append(
+                _make_chunk(document, pending_start, pending_end, "text")
+            )
             pending_start = block_start
 
         pending_end = block_end
 
     if pending_start is not None and pending_end > pending_start:
-        chunks.append(_make_chunk(document, pending_start, pending_end))
+        chunks.append(
+            _make_chunk(document, pending_start, pending_end, "text")
+        )
 
     return chunks
 
@@ -73,24 +84,36 @@ def _iter_text_block_ranges(text: str) -> Iterator[tuple[int, int]]:
         yield start, len(text)
 
 
-def _split_range(
+def split_source_range(
     document: SourceDocument,
     start: int,
     end: int,
     max_chunk_size: int,
+    chunk_type: Literal["python", "text"],
 ) -> list[SourceChunk]:
     """Split one oversized range into fixed-size exact slices."""
     return [
-        _make_chunk(document, cursor, min(cursor + max_chunk_size, end))
+        _make_chunk(
+            document,
+            cursor,
+            min(cursor + max_chunk_size, end),
+            chunk_type,
+        )
         for cursor in range(start, end, max_chunk_size)
     ]
 
 
-def _make_chunk(document: SourceDocument, start: int, end: int) -> SourceChunk:
+def _make_chunk(
+    document: SourceDocument,
+    start: int,
+    end: int,
+    chunk_type: Literal["python", "text"],
+) -> SourceChunk:
     """Build a chunk from a half-open slice of the original document text."""
     return SourceChunk(
         file_path=document.file_path,
         first_character_index=start,
         last_character_index=end,
+        chunk_type=chunk_type,
         text=document.text[start:end],
     )
