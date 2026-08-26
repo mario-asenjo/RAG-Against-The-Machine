@@ -16,6 +16,7 @@ venv/
 Thumbs.db
 
 # Runtime/evaluator data (subject says not to commit large/generated data)
+docs/extra/
 data/raw/
 data/processed/
 data/datasets/
