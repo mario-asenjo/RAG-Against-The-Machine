@@ -45,7 +45,7 @@ class RagCli:
         }
         try:
             corpus_root = Path(corpus_path)
-            documents = load_corpus(corpus_root)
+            documents = load_corpus(corpus_root, show_progress=True)
             build = build_lexical_index(
                 documents,
                 chunkers,

@@ -35,6 +35,10 @@ def run_index(corpus: Path, output: Path, max_chunk_size: int = 50) -> str:
         check=False,
     )
     assert result.returncode == 0, result.stderr
+    assert "Discovering corpus" in result.stderr
+    assert "Loading corpus" in result.stderr
+    assert "Chunking corpus" in result.stderr
+    assert "Building BM25 index" in result.stderr
     return result.stdout
 
 
