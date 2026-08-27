@@ -42,6 +42,7 @@ def test_chunk_text_document_prefers_blocks_and_crlf_unicode() -> None:
         "## Usage\r\n\r\nRun it.\r\n",
     ]
     assert [chunk.file_path for chunk in chunks] == [document.file_path] * 2
+    assert all(chunk.chunk_type == "text" for chunk in chunks)
     assert_chunks_rebuild_text(chunks, text)
     assert all(
         chunk.last_character_index - chunk.first_character_index <= 26
@@ -116,5 +117,6 @@ def test_source_chunk_rejects_text_that_does_not_match_span_width() -> None:
             file_path="data/raw/vllm-0.10.1/README.md",
             first_character_index=0,
             last_character_index=5,
+            chunk_type="text",
             text="tiny",
         )

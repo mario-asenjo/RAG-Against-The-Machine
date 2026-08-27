@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -33,6 +35,7 @@ class SourceDocument(BaseModel):
 class SourceChunk(MinimalSource):
     """A half-open source span plus its exact text slice."""
 
+    chunk_type: Literal["python", "text"]
     text: str
 
     @model_validator(mode="after")
