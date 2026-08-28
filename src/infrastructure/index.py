@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from contextlib import closing
 from pathlib import Path
 
 from tqdm import tqdm
 
-from src.domain import LexicalIndexBuild, LexicalIndexMetadata, SourceChunk
+from src.domain import (
+    LexicalIndexBuild,
+    LexicalIndexMetadata,
+    MinimalSource,
+    SourceChunk,
+)
 
 INDEX_FILENAME = "lexical_index.sqlite3"
 
@@ -136,6 +142,48 @@ def load_index_chunks(index_path: Path) -> list[SourceChunk]:
             last_character_index=row[2],
             chunk_type=row[3],
             text=row[4],
+        )
+        for row in rows
+    ]
+
+
+def search_lexical_index(
+    index_path: Path,
+    query: str,
+    k: int = 10,
+) -> list[MinimalSource]:
+    """Return exact source spans ranked by SQLite FTS5 BM25."""
+    if k < 0:
+        raise ValueError("k must be non-negative")
+    tokens = re.findall(r"\w+", query)
+    if not tokens:
+        raise ValueError("query must contain searchable terms")
+    _require_index(index_path)
+    match_query = " OR ".join(f'"{token}"' for token in tokens)
+    try:
+        with closing(sqlite3.connect(index_path)) as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    chunks.file_path,
+                    chunks.first_character_index,
+                    chunks.last_character_index
+                FROM chunks_fts
+                JOIN chunks ON chunks.id = chunks_fts.rowid
+                WHERE chunks_fts MATCH ?
+                ORDER BY bm25(chunks_fts), chunks.id
+                LIMIT ?
+                """,
+                (match_query, k),
+            ).fetchall()
+    except sqlite3.Error as error:
+        message = f"Could not search lexical index: {error}"
+        raise RuntimeError(message) from error
+    return [
+        MinimalSource(
+            file_path=row[0],
+            first_character_index=row[1],
+            last_character_index=row[2],
         )
         for row in rows
     ]

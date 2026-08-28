@@ -23,15 +23,19 @@ M2 — Persisted lexical retrieval baseline.
   with exact reconstruction and a maximum span of 2,000 characters.
 - The required `index` command atomically persists exact chunk metadata and a
   reusable SQLite FTS5 BM25 index under configurable `data/processed/` output.
-- No search ranking or recall result is claimed yet.
+- The required single-query `search` command safely tokenizes natural-language
+  input, ranks persisted chunks with SQLite FTS5 BM25, and emits exact
+  evaluator-facing source metadata without rebuilding the corpus.
+- A local 200-query repeated-search smoke completed in 5.343 seconds; public
+  dataset recall and evaluator-style batch timing are not claimed yet.
 
 ## Active issue
-[#7](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/7)
-persists the first lexical index and implements the mandatory `index` command.
+[#8](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/8)
+implements ranked single-query search and exact source projection.
 
 ## Next smallest step
-After #7 merges, start [#8 Implement BM25 search and exact source
-projection](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/8).
+After #8 merges, start [#9 Implement search_dataset and persisted
+search-results output](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/9).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

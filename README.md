@@ -1,6 +1,6 @@
 # RAG Against the Machine — Hermes Harness
 
-This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, and persists a SQLite FTS5 BM25 index. Search and answer commands remain issue-scoped work in progress.
+This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations. Dataset search and answer commands remain issue-scoped work in progress.
 
 ## Start here
 
@@ -34,15 +34,20 @@ The CLI can be inspected and the default corpus indexed with:
 ```bash
 uv run python -m src --help
 uv run python -m src index --max_chunk_size 2000
+uv run python -m src search "What is paged attention?" --k 5
 ```
 
-The index is written atomically to `data/processed/lexical_index.sqlite3` by default. Corpus and output paths remain configurable:
+The index is written atomically to `data/processed/lexical_index.sqlite3` by default. Corpus, index, and output paths remain configurable:
 
 ```bash
 uv run python -m src index \
   --corpus_path data/raw/vllm-0.10.1 \
   --save_directory data/processed \
   --max_chunk_size 2000
+
+uv run python -m src search "What is paged attention?" \
+  --index_directory data/processed \
+  --k 5
 ```
 
-Commands whose implementation issues are still open fail explicitly instead of pretending to be complete.
+`search` prints a JSON list containing only `file_path`, `first_character_index`, and `last_character_index`. Commands whose implementation issues are still open fail explicitly instead of pretending to be complete.
