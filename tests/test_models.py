@@ -9,10 +9,13 @@ from pydantic import ValidationError
 
 from src.domain import (
     AnsweredQuestion,
+    LexicalIndexBuild,
+    LexicalIndexMetadata,
     MinimalAnswer,
     MinimalSearchResults,
     MinimalSource,
     RagDataset,
+    SourceChunk,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
     UnansweredQuestion,
@@ -56,6 +59,26 @@ def test_required_fields_fail_predictably() -> None:
         UnansweredQuestion.model_validate({})
     with pytest.raises(ValidationError):
         UnansweredQuestion.model_validate({"question": "What is vLLM?"})
+
+
+def test_lexical_index_build_rejects_stale_chunk_count() -> None:
+    """Persisted metadata cannot disagree with its Pydantic chunk payload."""
+    metadata = LexicalIndexMetadata(
+        corpus_path="data/raw/vllm-0.10.1",
+        max_chunk_size=2000,
+        document_count=1,
+        chunk_count=0,
+    )
+    chunk = SourceChunk(
+        file_path="data/raw/vllm-0.10.1/README.md",
+        first_character_index=0,
+        last_character_index=4,
+        chunk_type="text",
+        text="vLLM",
+    )
+
+    with pytest.raises(ValidationError, match="chunk_count"):
+        LexicalIndexBuild(metadata=metadata, chunks=[chunk])
 
 
 def test_dataset_accepts_unanswered_and_answered_questions() -> None:

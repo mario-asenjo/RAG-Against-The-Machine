@@ -77,3 +77,26 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   with 28 tests; strict mypy passes over 22 source files.
 - Ponytail full review retained one AST scan plus the existing fallback; no
   Protocol, factory, parser dependency, or semantic analysis was added.
+
+## 2026-08-27 — #7 persisted lexical index
+- Validated #5/#6 against all 1,969 accepted public vLLM files without opening
+  the private holdout; fixed one real trailing-blank-line loss in the text
+  block iterator before persistence.
+- Added the first real application `Chunker` Protocol and injected the existing
+  Python/text callables through an explicit suffix map at the CLI composition
+  root; no factory, registry, or persistence port was added.
+- Selected stdlib SQLite FTS5 BM25 after a local capability probe, then persisted
+  Pydantic metadata, exact chunk path/span/type/text, and FTS retrieval data via
+  temporary-file construction plus atomic replacement.
+- The evaluator-facing `index` command supports configurable corpus/output paths,
+  displays tqdm progress for chunking and FTS construction, and translates
+  missing input/persistence failures into Fire errors without tracebacks.
+- Full-corpus evidence at implementation commit `2a34c0a`: 1,969 documents,
+  17,139 chunks, 36,945,920-byte index, maximum span 2,000, SQLite integrity
+  `ok`, exact reconstruction for every non-whitespace document, and a successful
+  native BM25 probe.
+- Cold observed indexing took 41.414 seconds; deliberate atomic refresh took
+  5.049 seconds, both below the 300-second gate. Recall and warm-query timing
+  remain intentionally unclaimed until #8/#10.
+- Fresh final local gates: `make check` passes with 32 tests and strict mypy
+  passes over 26 source files.

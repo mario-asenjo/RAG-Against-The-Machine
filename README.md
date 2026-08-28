@@ -1,6 +1,6 @@
 # RAG Against the Machine — Hermes Harness
 
-This repository scaffold is an implementation harness for the 42 project **RAG against the machine (subject v2.0)**. It deliberately contains project governance, source-derived constraints, Hermes/Ponytail setup, GitHub workflow templates, progress ledgers, and a minimal runnable Python skeleton — but **no finished retrieval implementation**.
+This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, and persists a SQLite FTS5 BM25 index. Search and answer commands remain issue-scoped work in progress.
 
 ## Start here
 
@@ -29,10 +29,20 @@ make lint-strict
 make context
 ```
 
-The placeholder CLI can be inspected with:
+The CLI can be inspected and the default corpus indexed with:
 
 ```bash
 uv run python -m src --help
+uv run python -m src index --max_chunk_size 2000
 ```
 
-It intentionally reports that project commands are not implemented until their issues are completed.
+The index is written atomically to `data/processed/lexical_index.sqlite3` by default. Corpus and output paths remain configurable:
+
+```bash
+uv run python -m src index \
+  --corpus_path data/raw/vllm-0.10.1 \
+  --save_directory data/processed \
+  --max_chunk_size 2000
+```
+
+Commands whose implementation issues are still open fail explicitly instead of pretending to be complete.

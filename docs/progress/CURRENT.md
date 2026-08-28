@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M1 — Chunking / Python structural source spans.
+M2 — Persisted lexical retrieval baseline.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -19,15 +19,19 @@ M1 — Chunking / Python structural source spans.
 - Python chunking uses top-level function/class boundaries, includes decorators,
   preserves exact original spans, and falls back safely for invalid syntax or
   oversized structures.
-- No retrieval implementation is claimed.
+- A real-corpus check covers all 1,969 accepted vLLM files and 17,139 chunks
+  with exact reconstruction and a maximum span of 2,000 characters.
+- The required `index` command atomically persists exact chunk metadata and a
+  reusable SQLite FTS5 BM25 index under configurable `data/processed/` output.
+- No search ranking or recall result is claimed yet.
 
 ## Active issue
-[#6](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/6)
-implements bounded Python code chunking with exact character spans.
+[#7](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/7)
+persists the first lexical index and implements the mandatory `index` command.
 
 ## Next smallest step
-After #6 merges, start [#7 Persist first lexical index and implement index
-command](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/7).
+After #7 merges, start [#8 Implement BM25 search and exact source
+projection](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/8).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

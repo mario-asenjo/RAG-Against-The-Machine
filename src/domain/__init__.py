@@ -2,6 +2,8 @@
 
 from src.domain.models import (
     AnsweredQuestion,
+    LexicalIndexBuild,
+    LexicalIndexMetadata,
     MinimalAnswer,
     MinimalSearchResults,
     MinimalSource,
@@ -15,6 +17,8 @@ from src.domain.models import (
 
 __all__ = [
     "AnsweredQuestion",
+    "LexicalIndexBuild",
+    "LexicalIndexMetadata",
     "MinimalAnswer",
     "MinimalSearchResults",
     "MinimalSource",

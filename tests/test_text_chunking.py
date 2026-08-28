@@ -50,6 +50,19 @@ def test_chunk_text_document_prefers_blocks_and_crlf_unicode() -> None:
     )
 
 
+def test_text_chunker_preserves_trailing_blank_lines() -> None:
+    """Trailing separators remain part of exact source coverage."""
+    text = "requirement==1.0\n\n\n"
+    document = SourceDocument(
+        file_path="data/raw/vllm-0.10.1/requirements/example.txt",
+        text=text,
+    )
+
+    chunks = chunk_text_document(document)
+
+    assert_chunks_rebuild_text(chunks, text)
+
+
 @pytest.mark.parametrize("text", ["", "   \n\t\r\n"])
 def test_chunk_text_document_returns_no_chunks_for_empty_or_whitespace(
     text: str,

@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import NoReturn
 
 import fire
+
+from src.application.ports import Chunker
+from src.application.use_cases import build_lexical_index
+from src.chunking import chunk_python_document, chunk_text_document
+from src.infrastructure import INDEX_FILENAME, load_corpus, save_lexical_index
 
 
 class RagCli:
@@ -14,8 +20,8 @@ class RagCli:
     def status() -> str:
         """Return the current scaffold status."""
         return (
-            "Harness ready. Mandatory RAG commands are intentionally not "
-            "implemented yet; follow the active GitHub issue."
+            "Harness ready. Lexical indexing is implemented; remaining RAG "
+            "commands follow the active GitHub issues."
         )
 
     @staticmethod
@@ -25,10 +31,40 @@ class RagCli:
             f"'{command}' is not implemented yet. "
         )
 
-    def index(self, max_chunk_size: int = 2000) -> NoReturn:
-        """Placeholder for the mandatory index command."""
-        del max_chunk_size
-        self._not_implemented("index")
+    def index(
+        self,
+        max_chunk_size: int = 2000,
+        corpus_path: str = "data/raw/vllm-0.10.1",
+        save_directory: str = "data/processed",
+    ) -> str:
+        """Build and atomically persist the SQLite FTS5 BM25 index."""
+        chunkers: dict[str, Chunker] = {
+            ".md": chunk_text_document,
+            ".py": chunk_python_document,
+            ".txt": chunk_text_document,
+        }
+        try:
+            corpus_root = Path(corpus_path)
+            documents = load_corpus(corpus_root, show_progress=True)
+            build = build_lexical_index(
+                documents,
+                chunkers,
+                corpus_root.as_posix(),
+                max_chunk_size,
+                show_progress=True,
+            )
+            index_path = save_lexical_index(
+                build,
+                Path(save_directory) / INDEX_FILENAME,
+                show_progress=True,
+            )
+        except (OSError, RuntimeError, UnicodeError, ValueError) as error:
+            raise fire.core.FireError(str(error)) from error
+
+        return (
+            f"Indexed {build.metadata.document_count} documents into "
+            f"{build.metadata.chunk_count} chunks at {index_path.as_posix()}"
+        )
 
     def search(self, query: str, k: int = 10) -> NoReturn:
         """Placeholder for the mandatory single-query search command."""

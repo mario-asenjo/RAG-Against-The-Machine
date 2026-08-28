@@ -69,18 +69,23 @@ def _iter_text_block_ranges(text: str) -> Iterator[tuple[int, int]]:
     start = 0
     cursor = 0
     has_content = False
+    separator_end: int | None = None
 
     for line in text.splitlines(keepends=True):
         line_end = cursor + len(line)
         is_blank = line.strip() == ""
-        has_content = has_content or not is_blank
-        if is_blank and has_content:
-            yield start, line_end
-            start = line_end
-            has_content = False
+        if is_blank:
+            if has_content:
+                separator_end = line_end
+        else:
+            if separator_end is not None:
+                yield start, separator_end
+                start = separator_end
+                separator_end = None
+            has_content = True
         cursor = line_end
 
-    if start < len(text) and has_content:
+    if has_content:
         yield start, len(text)
 
 
