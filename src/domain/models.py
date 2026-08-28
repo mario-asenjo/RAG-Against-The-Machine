@@ -53,7 +53,7 @@ class LexicalIndexMetadata(BaseModel):
     schema_version: Literal[1] = 1
     retrieval_method: Literal["sqlite-fts5-bm25"] = "sqlite-fts5-bm25"
     corpus_path: str
-    max_chunk_size: int = Field(gt=0)
+    max_chunk_size: int = Field(gt=0, le=2000)
     document_count: int = Field(ge=0)
     chunk_count: int = Field(ge=0)
 
@@ -65,10 +65,15 @@ class LexicalIndexBuild(BaseModel):
     chunks: list[SourceChunk]
 
     @model_validator(mode="after")
-    def validate_chunk_count(self) -> "LexicalIndexBuild":
-        """Keep persisted metadata aligned with the chunk collection."""
+    def validate_chunks(self) -> "LexicalIndexBuild":
+        """Keep persisted chunks aligned with their captured metadata."""
         if self.metadata.chunk_count != len(self.chunks):
             raise ValueError("chunk_count must match the number of chunks")
+        if any(
+            len(chunk.text) > self.metadata.max_chunk_size
+            for chunk in self.chunks
+        ):
+            raise ValueError("chunk text must not exceed max_chunk_size")
         return self
 
 

@@ -26,8 +26,7 @@ M2 — Persisted lexical retrieval baseline.
 - The required single-query `search` command safely tokenizes natural-language
   input, ranks persisted chunks with SQLite FTS5 BM25, and emits exact
   evaluator-facing source metadata without rebuilding the corpus.
-- A local 200-query repeated-search smoke completed in 5.343 seconds; public
-  dataset recall and evaluator-style batch timing are not claimed yet.
+- Retrieval throughput and public-dataset recall remain unmeasured.
 
 ## Active issue
 [#8](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/8)

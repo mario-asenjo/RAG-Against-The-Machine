@@ -19,18 +19,18 @@ def make_index(tmp_path: Path) -> Path:
     """Persist a tiny real FTS5 index for search tests."""
     chunks = [
         SourceChunk(
-            file_path="data/raw/vllm-0.10.1/docs/serving.md",
-            first_character_index=10,
-            last_character_index=48,
-            chunk_type="text",
-            text="vLLM is a fast model serving engine.\n\n",
-        ),
-        SourceChunk(
             file_path="data/raw/vllm-0.10.1/vllm/engine.py",
             first_character_index=100,
-            last_character_index=127,
+            last_character_index=126,
             chunk_type="python",
-            text="class VllmEngine:\n    pass\n",
+            text="vLLM compatibility layer.\n",
+        ),
+        SourceChunk(
+            file_path="data/raw/vllm-0.10.1/docs/serving.md",
+            first_character_index=10,
+            last_character_index=53,
+            chunk_type="text",
+            text="vLLM vLLM is a fast model serving engine.\n\n",
         ),
     ]
     build = LexicalIndexBuild(
@@ -74,15 +74,22 @@ def test_search_ranks_natural_language_and_projects_exact_source(
     """Natural-language punctuation must not corrupt BM25 source output."""
     index_path = make_index(tmp_path)
 
-    results = search_lexical_index(index_path, "What is vLLM?", k=1)
+    ranked = search_lexical_index(index_path, "What is vLLM?", k=2)
+    limited = search_lexical_index(index_path, "What is vLLM?", k=1)
 
-    assert [result.model_dump() for result in results] == [
+    assert [result.model_dump() for result in ranked] == [
         {
             "file_path": "data/raw/vllm-0.10.1/docs/serving.md",
             "first_character_index": 10,
-            "last_character_index": 48,
-        }
+            "last_character_index": 53,
+        },
+        {
+            "file_path": "data/raw/vllm-0.10.1/vllm/engine.py",
+            "first_character_index": 100,
+            "last_character_index": 126,
+        },
     ]
+    assert limited == ranked[:1]
 
 
 def test_search_rejects_query_without_searchable_terms(tmp_path: Path) -> None:
@@ -125,7 +132,7 @@ def test_search_cli_emits_exact_json_sources(tmp_path: Path) -> None:
         {
             "file_path": "data/raw/vllm-0.10.1/docs/serving.md",
             "first_character_index": 10,
-            "last_character_index": 48,
+            "last_character_index": 53,
         }
     ]
 

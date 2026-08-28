@@ -111,11 +111,17 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   project directly to exact `MinimalSource` path and half-open offsets.
 - Empty/punctuation-only queries, negative `k`, missing/corrupt indexes, zero
   results, and `k=0` have deliberate traceback-free behavior.
-- Full-corpus refresh produced 17,134 chunks at max size 2,000 in 3.732 seconds;
-  a real CLI search completed in 0.431 seconds with five exact-shape results.
-- A 200-query local repeated-search smoke completed in 5.343 seconds; this is
-  throughput evidence only, not public/private evaluator recall evidence.
-- Fresh final local gates: `make check` passes with 42 tests and strict mypy
+- Retrieval throughput and recall remain unclaimed; probes over ignored local
+  data were excluded from the ledger because they are not reproducible evidence.
+- Fresh final local gates: `make check` passes with 44 tests and strict mypy
   passes over 27 source files.
 - Official Ponytail `full` review used `DietrichGebert/ponytail` at `1b2760d`:
   `Lean already. Ship.` (`net: -0 lines possible`).
+- Independent review found that the positive fixture did not distinguish BM25
+  ranking from insertion order. The fixture now inserts the weaker match first,
+  asserts BM25 reverses that order, and independently asserts `LIMIT k`.
+- Fail-closed review also found that index metadata accepted configured sizes
+  above 2,000. The domain contract now caps that field at 2,000 and rejects any
+  persisted chunk exceeding the configured maximum.
+- Follow-up Ponytail `full` review kept the corrective diff unchanged: the two
+  domain checks and their regression tests are the minimum complete invariant.
