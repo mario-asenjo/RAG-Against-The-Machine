@@ -6,6 +6,7 @@ from src.infrastructure.index import (
     load_index_chunks,
     load_index_metadata,
     save_lexical_index,
+    search_lexical_index,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "load_index_chunks",
     "load_index_metadata",
     "save_lexical_index",
+    "search_lexical_index",
 ]

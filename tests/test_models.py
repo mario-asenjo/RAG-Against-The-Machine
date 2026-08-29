@@ -81,6 +81,37 @@ def test_lexical_index_build_rejects_stale_chunk_count() -> None:
         LexicalIndexBuild(metadata=metadata, chunks=[chunk])
 
 
+def test_lexical_index_metadata_rejects_size_above_subject_cap() -> None:
+    """The configured chunk size cannot exceed the subject's 2000-char cap."""
+    with pytest.raises(ValidationError, match="less than or equal to 2000"):
+        LexicalIndexMetadata(
+            corpus_path="data/raw/vllm-0.10.1",
+            max_chunk_size=2001,
+            document_count=0,
+            chunk_count=0,
+        )
+
+
+def test_lexical_index_build_rejects_chunk_above_configured_size() -> None:
+    """A persisted source span cannot exceed its captured chunk-size limit."""
+    metadata = LexicalIndexMetadata(
+        corpus_path="data/raw/vllm-0.10.1",
+        max_chunk_size=4,
+        document_count=1,
+        chunk_count=1,
+    )
+    chunk = SourceChunk(
+        file_path="data/raw/vllm-0.10.1/README.md",
+        first_character_index=0,
+        last_character_index=5,
+        chunk_type="text",
+        text="vLLM!",
+    )
+
+    with pytest.raises(ValidationError, match="max_chunk_size"):
+        LexicalIndexBuild(metadata=metadata, chunks=[chunk])
+
+
 def test_dataset_accepts_unanswered_and_answered_questions() -> None:
     """The subject dataset wrapper can carry public answer ground truth."""
     source = MinimalSource(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import NoReturn
 
@@ -10,7 +11,12 @@ import fire
 from src.application.ports import Chunker
 from src.application.use_cases import build_lexical_index
 from src.chunking import chunk_python_document, chunk_text_document
-from src.infrastructure import INDEX_FILENAME, load_corpus, save_lexical_index
+from src.infrastructure import (
+    INDEX_FILENAME,
+    load_corpus,
+    save_lexical_index,
+    search_lexical_index,
+)
 
 
 class RagCli:
@@ -66,10 +72,22 @@ class RagCli:
             f"{build.metadata.chunk_count} chunks at {index_path.as_posix()}"
         )
 
-    def search(self, query: str, k: int = 10) -> NoReturn:
-        """Placeholder for the mandatory single-query search command."""
-        del query, k
-        self._not_implemented("search")
+    def search(
+        self,
+        query: str,
+        k: int = 10,
+        index_directory: str = "data/processed",
+    ) -> str:
+        """Return ranked exact source locations from the persisted index."""
+        try:
+            sources = search_lexical_index(
+                Path(index_directory) / INDEX_FILENAME,
+                query,
+                k,
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(str(error)) from error
+        return json.dumps([source.model_dump() for source in sources])
 
     def search_dataset(
         self,

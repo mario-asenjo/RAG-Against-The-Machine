@@ -1,6 +1,6 @@
 # Retrieval benchmark ledger
 
-No implementation baseline exists yet.
+An indexing baseline exists; retrieval throughput and recall remain unmeasured.
 
 | Run | Commit | Method | Chunking | Index s | Warm search s | Docs R@5 | Code R@5 | Max span | Conclusion |
 |---|---|---|---|---:|---:|---:|---:|---:|---|

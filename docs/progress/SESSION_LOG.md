@@ -100,3 +100,28 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   remain intentionally unclaimed until #8/#10.
 - Fresh final local gates: `make check` passes with 32 tests and strict mypy
   passes over 26 source files.
+
+## 2026-08-28 — #8 ranked single-query search
+- Added one direct stdlib SQLite query over the persisted FTS5 index; no corpus
+  loading, new dependency, retriever interface, factory, or cache was added.
+- Natural-language input is reduced to quoted Unicode word tokens joined with
+  `OR`, preventing FTS syntax errors from punctuation while leaving measured
+  recall optimization to #10.
+- BM25 score plus persisted chunk ID provides deterministic ranking; results
+  project directly to exact `MinimalSource` path and half-open offsets.
+- Empty/punctuation-only queries, negative `k`, missing/corrupt indexes, zero
+  results, and `k=0` have deliberate traceback-free behavior.
+- Retrieval throughput and recall remain unclaimed; probes over ignored local
+  data were excluded from the ledger because they are not reproducible evidence.
+- Fresh final local gates: `make check` passes with 44 tests and strict mypy
+  passes over 27 source files.
+- Official Ponytail `full` review used `DietrichGebert/ponytail` at `1b2760d`:
+  `Lean already. Ship.` (`net: -0 lines possible`).
+- Independent review found that the positive fixture did not distinguish BM25
+  ranking from insertion order. The fixture now inserts the weaker match first,
+  asserts BM25 reverses that order, and independently asserts `LIMIT k`.
+- Fail-closed review also found that index metadata accepted configured sizes
+  above 2,000. The domain contract now caps that field at 2,000 and rejects any
+  persisted chunk exceeding the configured maximum.
+- Follow-up Ponytail `full` review kept the corrective diff unchanged: the two
+  domain checks and their regression tests are the minimum complete invariant.
