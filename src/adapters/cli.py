@@ -70,7 +70,8 @@ class RagCli:
 
         return (
             f"Indexed {build.metadata.document_count} documents into "
-            f"{build.metadata.chunk_count} chunks at {index_path.as_posix()}"
+            f"{build.metadata.chunk_count} chunks at "
+            f"{index_path.parent.as_posix()}"
         )
 
     def search(
@@ -88,12 +89,11 @@ class RagCli:
             )
         except (OSError, RuntimeError, ValueError) as error:
             raise fire.core.FireError(str(error)) from error
-        result = MinimalSearchResults(
-            question=query,
-            retrieved_sources=sources,
+        return "\n".join(
+            f"{source.file_path} "
+            f"[{source.first_character_index}:{source.last_character_index}]"
+            for source in sources
         )
-        output = StudentSearchResults(search_results=[result], k=k)
-        return output.model_dump_json()
 
     def search_dataset(
         self,
