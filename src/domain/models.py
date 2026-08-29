@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Literal
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -80,7 +81,7 @@ class LexicalIndexBuild(BaseModel):
 class UnansweredQuestion(BaseModel):
     """A dataset question before retrieval or answer generation."""
 
-    question_id: str
+    question_id: str = Field(default_factory=lambda: str(uuid4()))
     question: str
 
 

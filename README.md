@@ -1,6 +1,6 @@
 # RAG Against the Machine — Hermes Harness
 
-This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations. Dataset search and answer commands remain issue-scoped work in progress.
+This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations for individual queries and datasets. Answer commands remain issue-scoped work in progress.
 
 ## Start here
 
@@ -48,6 +48,16 @@ uv run python -m src index \
 uv run python -m src search "What is paged attention?" \
   --index_directory data/processed \
   --k 5
+
+uv run python -m src search_dataset \
+  --dataset_path data/input/dataset_docs_public.json \
+  --index_directory data/processed \
+  --save_directory data/output/search_results \
+  --k 5
 ```
 
-`search` prints a JSON list containing only `file_path`, `first_character_index`, and `last_character_index`. Commands whose implementation issues are still open fail explicitly instead of pretending to be complete.
+Both search commands serialize the subject's `StudentSearchResults` model.
+`search` prints one wrapped result; `search_dataset` writes one output file with
+the input filename while preserving question identity and order. Commands whose
+implementation issues are still open fail explicitly instead of pretending to
+be complete.

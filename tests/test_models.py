@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 
 import pytest
 from pydantic import ValidationError
@@ -57,8 +58,13 @@ def test_required_fields_fail_predictably() -> None:
         MinimalSource.model_validate({})
     with pytest.raises(ValidationError):
         UnansweredQuestion.model_validate({})
-    with pytest.raises(ValidationError):
-        UnansweredQuestion.model_validate({"question": "What is vLLM?"})
+
+
+def test_unanswered_question_generates_subject_default_id() -> None:
+    """A standalone subject question should receive a UUID string."""
+    question = UnansweredQuestion(question="What is vLLM?")
+
+    assert str(uuid.UUID(question.question_id)) == question.question_id
 
 
 def test_lexical_index_build_rejects_stale_chunk_count() -> None:

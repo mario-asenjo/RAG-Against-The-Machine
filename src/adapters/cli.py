@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import NoReturn
 
@@ -11,11 +10,13 @@ import fire
 from src.application.ports import Chunker
 from src.application.use_cases import build_lexical_index
 from src.chunking import chunk_python_document, chunk_text_document
+from src.domain import MinimalSearchResults, RagDataset, StudentSearchResults
 from src.infrastructure import (
     INDEX_FILENAME,
     load_corpus,
     save_lexical_index,
     search_lexical_index,
+    search_lexical_index_batch,
 )
 
 
@@ -87,17 +88,56 @@ class RagCli:
             )
         except (OSError, RuntimeError, ValueError) as error:
             raise fire.core.FireError(str(error)) from error
-        return json.dumps([source.model_dump() for source in sources])
+        result = MinimalSearchResults(
+            question=query,
+            retrieved_sources=sources,
+        )
+        output = StudentSearchResults(search_results=[result], k=k)
+        return output.model_dump_json()
 
     def search_dataset(
         self,
         dataset_path: str,
         k: int = 10,
         save_directory: str = "data/output/search_results",
-    ) -> NoReturn:
-        """Placeholder for the mandatory dataset search command."""
-        del dataset_path, k, save_directory
-        self._not_implemented("search_dataset")
+        index_directory: str = "data/processed",
+    ) -> str:
+        """Search a dataset and persist the subject's output model."""
+        try:
+            input_path = Path(dataset_path)
+            dataset = RagDataset.model_validate_json(
+                input_path.read_text(encoding="utf-8")
+            )
+            sources = search_lexical_index_batch(
+                Path(index_directory) / INDEX_FILENAME,
+                [question.question for question in dataset.rag_questions],
+                k,
+                show_progress=True,
+            )
+            output = StudentSearchResults(
+                search_results=[
+                    MinimalSearchResults(
+                        question_id=question.question_id,
+                        question=question.question,
+                        retrieved_sources=retrieved_sources,
+                    )
+                    for question, retrieved_sources in zip(
+                        dataset.rag_questions,
+                        sources,
+                    )
+                ],
+                k=k,
+            )
+            output_directory = Path(save_directory)
+            output_directory.mkdir(parents=True, exist_ok=True)
+            output_path = output_directory / input_path.name
+            output_path.write_text(
+                output.model_dump_json(indent=2),
+                encoding="utf-8",
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(str(error)) from error
+        return f"Saved student_search_results to {output_path.as_posix()}"
 
     def answer(self, query: str, k: int = 10) -> NoReturn:
         """Placeholder for the mandatory single-query answer command."""

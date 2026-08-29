@@ -29,3 +29,12 @@ The implementation uses a small modular monolith, not ceremonial hexagonal archi
 **Status:** accepted for #7.
 
 The first persisted lexical baseline uses stdlib `sqlite3` with FTS5 and its native BM25 ranking data. This avoids a new dependency, persists exact chunk metadata beside warm-query retrieval data, and supports atomic full refreshes. The indexing use case now depends on a minimal structural `Chunker` Protocol because Python and text implementations are both real and interchangeable; explicit suffix wiring remains in the CLI composition root, with no factory or registry framework. The evaluator Python build must include FTS5; fixture tests and CI exercise that requirement directly.
+
+## D-0007 — Subject models own evaluator-facing JSON
+**Status:** accepted for #9.
+
+Search inputs are validated as `RagDataset`, and every search output is built as
+`StudentSearchResults` containing `MinimalSearchResults` before serialization.
+The single-query command uses the subject's default UUID behavior and wraps its
+one result in the same output contract. Ad hoc dictionaries are not output
+boundaries; future answer stages must follow their corresponding subject models.

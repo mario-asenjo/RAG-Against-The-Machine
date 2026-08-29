@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from src.domain import LexicalIndexBuild, LexicalIndexMetadata, SourceChunk
+from src.domain import (
+    LexicalIndexBuild,
+    LexicalIndexMetadata,
+    SourceChunk,
+    StudentSearchResults,
+)
 from src.infrastructure import save_lexical_index, search_lexical_index
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -121,14 +125,24 @@ def test_search_deliberately_returns_no_sources(
     assert search_lexical_index(make_index(tmp_path), query, k) == []
 
 
-def test_search_cli_emits_exact_json_sources(tmp_path: Path) -> None:
-    """The evaluator-facing command prints machine-readable source metadata."""
+def test_search_cli_emits_subject_search_results_model(tmp_path: Path) -> None:
+    """Single search should print the subject's search-results wrapper."""
     index_path = make_index(tmp_path)
 
     result = run_search(index_path.parent, "What is vLLM?", k=1)
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == [
+    output = StudentSearchResults.model_validate_json(result.stdout)
+    search_result = output.search_results[0]
+
+    assert output.k == 1
+    assert len(output.search_results) == 1
+    assert search_result.question == "What is vLLM?"
+    assert search_result.question_id
+    retrieved_sources = [
+        source.model_dump() for source in search_result.retrieved_sources
+    ]
+    assert retrieved_sources == [
         {
             "file_path": "data/raw/vllm-0.10.1/docs/serving.md",
             "first_character_index": 10,
