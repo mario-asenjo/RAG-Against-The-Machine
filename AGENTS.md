@@ -44,7 +44,9 @@ Private datasets are a **holdout**. Do not inspect their ground-truth answers/so
 - Flake8 must pass.
 - Mypy must pass with the subject flags; strict mode is a desired stronger gate.
 - Type hints and PEP 257-style docstrings are required.
-- Data exchanged between pipeline stages uses Pydantic models.
+- Data exchanged between pipeline stages uses Pydantic models. Evaluator-facing
+  JSON must be built with the exact subject wrapper model and serialized from
+  that model, never assembled from ad hoc dictionaries.
 - CLI uses Python Fire.
 - Long-running operations use tqdm progress bars.
 - Default answer model is `Qwen/Qwen3-0.6B`; alternatives are allowed only if the project still works with it.

@@ -125,3 +125,19 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   persisted chunk exceeding the configured maximum.
 - Follow-up Ponytail `full` review kept the corrective diff unchanged: the two
   domain checks and their regression tests are the minimum complete invariant.
+
+## 2026-08-29 — #9 dataset search and output contracts
+- Audited the supplied subject and public unanswered datasets without opening
+  private holdout answers; search operations require `StudentSearchResults`.
+- Corrected standalone question IDs to use the subject's UUID default and made
+  single-query search serialize the same subject wrapper instead of a bare list.
+- Added ordered dataset retrieval through one warm SQLite connection with tqdm,
+  configurable paths, predictable filenames, and traceback-free input errors.
+- Reproducible public smoke processed 100 documentation and 99 code questions
+  at `k=5` in 7.324 and 8.689 seconds; all IDs/order matched and 995 sources had
+  existing paths, valid offsets, and spans no larger than 2,000 characters.
+- Fresh local gates: `make check` passes with 51 tests and strict mypy passes
+  over 27 source files after test consolidation.
+- Official Ponytail `full` review used `DietrichGebert/ponytail` at `1b2760d`.
+  Its duplicate-test-fixture finding was applied by consolidating dataset tests
+  into `tests/test_search.py`; production design remained unchanged.

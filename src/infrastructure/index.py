@@ -155,30 +155,65 @@ def search_lexical_index(
     """Return exact source spans ranked by SQLite FTS5 BM25."""
     if k < 0:
         raise ValueError("k must be non-negative")
-    tokens = re.findall(r"\w+", query)
-    if not tokens:
-        raise ValueError("query must contain searchable terms")
     _require_index(index_path)
-    match_query = " OR ".join(f'"{token}"' for token in tokens)
     try:
         with closing(sqlite3.connect(index_path)) as connection:
-            rows = connection.execute(
-                """
-                SELECT
-                    chunks.file_path,
-                    chunks.first_character_index,
-                    chunks.last_character_index
-                FROM chunks_fts
-                JOIN chunks ON chunks.id = chunks_fts.rowid
-                WHERE chunks_fts MATCH ?
-                ORDER BY bm25(chunks_fts), chunks.id
-                LIMIT ?
-                """,
-                (match_query, k),
-            ).fetchall()
+            return _search_connection(connection, query, k)
     except sqlite3.Error as error:
         message = f"Could not search lexical index: {error}"
         raise RuntimeError(message) from error
+
+
+def search_lexical_index_batch(
+    index_path: Path,
+    queries: list[str],
+    k: int = 10,
+    show_progress: bool = False,
+) -> list[list[MinimalSource]]:
+    """Search ordered queries through one warm SQLite connection."""
+    if k < 0:
+        raise ValueError("k must be non-negative")
+    _require_index(index_path)
+    try:
+        with closing(sqlite3.connect(index_path)) as connection:
+            return [
+                _search_connection(connection, query, k)
+                for query in tqdm(
+                    queries,
+                    desc="Searching dataset",
+                    unit="question",
+                    disable=not show_progress,
+                )
+            ]
+    except sqlite3.Error as error:
+        message = f"Could not search lexical index: {error}"
+        raise RuntimeError(message) from error
+
+
+def _search_connection(
+    connection: sqlite3.Connection,
+    query: str,
+    k: int,
+) -> list[MinimalSource]:
+    """Run one safe BM25 query through an existing connection."""
+    tokens = re.findall(r"\w+", query)
+    if not tokens:
+        raise ValueError("query must contain searchable terms")
+    match_query = " OR ".join(f'"{token}"' for token in tokens)
+    rows = connection.execute(
+        """
+        SELECT
+            chunks.file_path,
+            chunks.first_character_index,
+            chunks.last_character_index
+        FROM chunks_fts
+        JOIN chunks ON chunks.id = chunks_fts.rowid
+        WHERE chunks_fts MATCH ?
+        ORDER BY bm25(chunks_fts), chunks.id
+        LIMIT ?
+        """,
+        (match_query, k),
+    ).fetchall()
     return [
         MinimalSource(
             file_path=row[0],

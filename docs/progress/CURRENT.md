@@ -24,17 +24,20 @@ M2 — Persisted lexical retrieval baseline.
 - The required `index` command atomically persists exact chunk metadata and a
   reusable SQLite FTS5 BM25 index under configurable `data/processed/` output.
 - The required single-query `search` command safely tokenizes natural-language
-  input, ranks persisted chunks with SQLite FTS5 BM25, and emits exact
-  evaluator-facing source metadata without rebuilding the corpus.
-- Retrieval throughput and public-dataset recall remain unmeasured.
+  input, ranks persisted chunks with SQLite FTS5 BM25, and emits the subject's
+  `StudentSearchResults` contract without rebuilding the corpus.
+- The required `search_dataset` command validates `RagDataset`, reuses one warm
+  SQLite connection, preserves question identity/order, and writes the exact
+  `StudentSearchResults` model to a predictable configurable output path.
+- A public unanswered-dataset smoke processed 199 questions at `k=5` in 16.014
+  seconds total; Recall@k remains intentionally unmeasured until #10.
 
 ## Active issue
-[#8](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/8)
-implements ranked single-query search and exact source projection.
+[#9](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/9)
+implements dataset retrieval and persisted subject-compatible output.
 
 ## Next smallest step
-After #8 merges, start [#9 Implement search_dataset and persisted
-search-results output](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/9).
+After #9 merges, start [#11 Implement Recall@k evaluation](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/11).
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

@@ -21,7 +21,7 @@ def load_corpus(
     discovered_paths = tqdm(
         corpus_path.rglob("*"),
         desc="Discovering corpus",
-        unit="path",
+        unit=" paths found",
         disable=not show_progress,
     )
     paths = sorted(
