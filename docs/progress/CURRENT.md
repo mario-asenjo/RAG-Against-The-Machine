@@ -29,7 +29,7 @@ M2 — Persisted lexical retrieval baseline.
 - The required `search_dataset` command validates `RagDataset`, reuses one warm
   SQLite connection, preserves question identity/order, and writes the exact
   `StudentSearchResults` model to a predictable configurable output path.
-- A public unanswered-dataset smoke processed 199 questions at `k=5` in 9.445
+- A public unanswered-dataset smoke processed 199 questions at `k=5` in 16.014
   seconds total; Recall@k remains intentionally unmeasured until #10.
 
 ## Active issue

@@ -133,11 +133,11 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   single-query search serialize the same subject wrapper instead of a bare list.
 - Added ordered dataset retrieval through one warm SQLite connection with tqdm,
   configurable paths, predictable filenames, and traceback-free input errors.
-- Public smoke processed 100 documentation and 99 code questions at `k=5` in
-  4.518 and 4.927 seconds; all IDs/order matched and 995 returned sources had
+- Reproducible public smoke processed 100 documentation and 99 code questions
+  at `k=5` in 7.324 and 8.689 seconds; all IDs/order matched and 995 sources had
   existing paths, valid offsets, and spans no larger than 2,000 characters.
 - Fresh local gates: `make check` passes with 51 tests and strict mypy passes
-  over 28 source files.
-- Official Ponytail `full` review used `DietrichGebert/ponytail` at `1b2760d`;
-  the shared warm-query helper and direct Pydantic composition were retained as
-  the minimum complete implementation (`Lean already. Ship.`, net: -0 lines).
+  over 27 source files after test consolidation.
+- Official Ponytail `full` review used `DietrichGebert/ponytail` at `1b2760d`.
+  Its duplicate-test-fixture finding was applied by consolidating dataset tests
+  into `tests/test_search.py`; production design remained unchanged.
