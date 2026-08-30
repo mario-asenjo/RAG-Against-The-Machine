@@ -102,7 +102,7 @@ class RagCli:
         self,
         dataset_path: str,
         k: int = 10,
-        save_directory: str = "data/output/search_results",
+        save_directory: str = "data/output/search_results/UnansweredQuestions",
         index_directory: str = "data/processed",
     ) -> str:
         """Search a dataset and persist the subject's output model."""
@@ -197,7 +197,7 @@ class RagCli:
             for k, recall in evaluation.recall_at.items()
         }
         metric_lines = "\n".join(
-            f"Recall@{k}: {recall:.3f}"
+            f"Recall@{k}: {recall:.3f} ({recall*100}%)"
             for k, recall in evaluation.recall_at.items()
         )
         return (
