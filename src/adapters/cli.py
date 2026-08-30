@@ -163,20 +163,34 @@ class RagCli:
         max_context_length: int = 2000,
     ) -> str:
         """Evaluate student retrieval with macro Recall@1/3/5/10."""
+        student_data_is_valid = False
         try:
             student = StudentSearchResults.model_validate_json(
                 Path(student_search_results_path).read_text(encoding="utf-8")
             )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(
+                f"Student data is valid: {student_data_is_valid}\n{error}"
+            ) from error
+
+        try:
             dataset = RagDataset.model_validate_json(
                 Path(dataset_path).read_text(encoding="utf-8")
             )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(str(error)) from error
+
+        try:
             evaluation = evaluate_search_results(
                 student,
                 dataset,
                 max_context_length=max_context_length,
             )
-        except (OSError, RuntimeError, ValueError) as error:
-            raise fire.core.FireError(str(error)) from error
+        except (RuntimeError, ValueError) as error:
+            raise fire.core.FireError(
+                f"Student data is valid: {student_data_is_valid}\n{error}"
+            ) from error
+        student_data_is_valid = True
 
         metrics = {
             f"recall@{k}": recall
@@ -187,7 +201,7 @@ class RagCli:
             for k, recall in evaluation.recall_at.items()
         )
         return (
-            "Student data is valid: True\n"
+            f"Student data is valid: {student_data_is_valid}\n"
             f"Total number of questions: {evaluation.total_questions}\n"
             "Total number of questions with sources: "
             f"{evaluation.questions_evaluated}\n"

@@ -264,17 +264,23 @@ def test_evaluate_cli_smoke_reports_macro_recall(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("student_content", "dataset_content"),
+    ("student_content", "dataset_content", "student_is_invalid"),
     [
-        (None, "{}"),
-        ("not json", "{}"),
-        ('{"search_results": [], "k": 10}', '{"rag_questions": [{}]}'),
+        (None, "{}", True),
+        ("not json", "{}", True),
+        ("{}", "{}", True),
+        (
+            '{"search_results": [], "k": 10}',
+            '{"rag_questions": [{}]}',
+            False,
+        ),
     ],
 )
 def test_evaluate_cli_handles_invalid_input_without_traceback(
     tmp_path: Path,
     student_content: str | None,
     dataset_content: str,
+    student_is_invalid: bool,
 ) -> None:
     """Missing, malformed, and schema-invalid input become concise errors."""
     student_path = tmp_path / "student.json"
@@ -286,4 +292,34 @@ def test_evaluate_cli_handles_invalid_input_without_traceback(
     completed = run_evaluate(student_path, dataset_path)
 
     assert completed.returncode != 0
+    assert "Traceback" not in completed.stderr
+    assert ("Student data is valid: False" in completed.stderr) is (
+        student_is_invalid
+    )
+
+
+def test_evaluate_cli_marks_evaluation_errors_as_invalid_student_data(
+    tmp_path: Path,
+) -> None:
+    """Semantic student-result errors should report invalid student data."""
+    dataset_path = tmp_path / "answered.json"
+    student_path = tmp_path / "student.json"
+    dataset_path.write_text(
+        RagDataset(
+            rag_questions=[answered("q1", [source()])]
+        ).model_dump_json(),
+        encoding="utf-8",
+    )
+    student_path.write_text(
+        StudentSearchResults(
+            search_results=[result("unknown", [source()])],
+            k=10,
+        ).model_dump_json(),
+        encoding="utf-8",
+    )
+
+    completed = run_evaluate(student_path, dataset_path)
+
+    assert completed.returncode != 0
+    assert "Student data is valid: False" in completed.stderr
     assert "Traceback" not in completed.stderr
