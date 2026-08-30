@@ -154,3 +154,16 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
 - Fresh final evidence: `make check` passes with 51 tests. Ponytail `full`
   removed the redundant single-query output wrapper and caught Fire's extra
   trailing newline; no new abstraction or dependency was introduced.
+
+## 2026-08-30 — #11 macro Recall@k evaluation
+- Added a pure application use case for exact-path, strict IoU > 0.05 source
+  matching and macro-averaged per-question Recall@1/3/5/10.
+- Explicitly distinguished Recall@k from HitRate@k and micro-recall with
+  multi-source regression fixtures; duplicate retrievals cannot inflate recall.
+- Added deterministic question-ID validation, empty retrieval handling,
+  max-context checks, and traceback-free Fire errors for invalid inputs.
+- Regenerated ignored public `k=10` search outputs and reproduced the supplied
+  moulinette metrics exactly: Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667 at Recall@1/3/5/10.
+- No ranking, BM25, chunking, index, dependency, or moulinette integration was
+  changed. Fresh local gates: `make check` passes with 67 tests.

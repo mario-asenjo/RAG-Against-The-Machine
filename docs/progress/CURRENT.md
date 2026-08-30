@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M2 — Persisted lexical retrieval baseline.
+M3 — Evaluation and answer pipeline.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -31,14 +31,19 @@ M2 — Persisted lexical retrieval baseline.
   `StudentSearchResults` model to a predictable configurable output path.
 - The public `k=10` baseline processes 199 docs/code questions in 12.187 seconds
   and passes moulinette validation: Docs Recall@5 0.870 and Code Recall@5 0.606.
+- Issue #10 and its public retrieval baseline are closed.
+- The project-owned `evaluate` command computes per-question source Recall@k
+  and macro-averages it across questions with non-empty ground truth.
+- Local evaluation reproduces the recorded moulinette values at every cutoff:
+  Docs 0.600/0.780/0.870/0.890 and Code 0.354/0.545/0.606/0.667 for
+  Recall@1/3/5/10.
 
 ## Active issue
-[#10](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/10)
-records the reproducible public retrieval baseline and measured gate status.
+[#11 Implement Recall@k evaluation](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/11)
+is the active M3 slice.
 
 ## Next smallest step
-Finish #10 evidence delivery, then start
-[#11 Implement Recall@k evaluation](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/11).
+Complete #11 delivery and CI validation without changing retrieval behavior.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

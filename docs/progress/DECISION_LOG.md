@@ -38,3 +38,13 @@ Search inputs are validated as `RagDataset`, and every search output is built as
 The single-query command uses the subject's default UUID behavior and wraps its
 one result in the same output contract. Ad hoc dictionaries are not output
 boundaries; future answer stages must follow their corresponding subject models.
+
+## D-0008 — Recall@k is macro source recall, not question hit rate
+**Status:** accepted for #11.
+
+For each evaluable question, Recall@k is the proportion of its ground-truth
+sources matched in the top-k by exact path and half-open span IoU strictly above
+0.05. Each expected source contributes at most once, and dataset Recall@k is
+the macro-average of per-question recalls. Questions without ground-truth
+sources are excluded; missing student results contribute zero. This deliberately
+differs from HitRate@k, micro-recall, and duplicate-sensitive counting.

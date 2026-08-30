@@ -8,7 +8,10 @@ from typing import NoReturn
 import fire
 
 from src.application.ports import Chunker
-from src.application.use_cases import build_lexical_index
+from src.application.use_cases import (
+    build_lexical_index,
+    evaluate_search_results,
+)
 from src.chunking import chunk_python_document, chunk_text_document
 from src.domain import MinimalSearchResults, RagDataset, StudentSearchResults
 from src.infrastructure import (
@@ -99,7 +102,7 @@ class RagCli:
         self,
         dataset_path: str,
         k: int = 10,
-        save_directory: str = "data/output/search_results",
+        save_directory: str = "data/output/search_results/UnansweredQuestions",
         index_directory: str = "data/processed",
     ) -> str:
         """Search a dataset and persist the subject's output model."""
@@ -157,10 +160,59 @@ class RagCli:
         self,
         student_search_results_path: str,
         dataset_path: str,
-    ) -> NoReturn:
-        """Placeholder for the local recall evaluation command."""
-        del student_search_results_path, dataset_path
-        self._not_implemented("evaluate")
+        max_context_length: int = 2000,
+    ) -> str:
+        """Evaluate student retrieval with macro Recall@1/3/5/10."""
+        student_data_is_valid = False
+        try:
+            student = StudentSearchResults.model_validate_json(
+                Path(student_search_results_path).read_text(encoding="utf-8")
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(
+                f"Student data is valid: {student_data_is_valid}\n{error}"
+            ) from error
+
+        try:
+            dataset = RagDataset.model_validate_json(
+                Path(dataset_path).read_text(encoding="utf-8")
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(str(error)) from error
+
+        try:
+            evaluation = evaluate_search_results(
+                student,
+                dataset,
+                max_context_length=max_context_length,
+            )
+        except (RuntimeError, ValueError) as error:
+            raise fire.core.FireError(
+                f"Student data is valid: {student_data_is_valid}\n{error}"
+            ) from error
+        student_data_is_valid = True
+
+        metrics = {
+            f"recall@{k}": recall
+            for k, recall in evaluation.recall_at.items()
+        }
+        metric_lines = "\n".join(
+            f"Recall@{k}: {recall:.3f} ({recall*100}%)"
+            for k, recall in evaluation.recall_at.items()
+        )
+        return (
+            f"Student data is valid: {student_data_is_valid}\n"
+            f"Total number of questions: {evaluation.total_questions}\n"
+            "Total number of questions with sources: "
+            f"{evaluation.questions_evaluated}\n"
+            "Total number of questions with student sources: "
+            f"{evaluation.questions_with_student_sources}\n\n"
+            "Evaluation Results\n"
+            "========================================\n"
+            f"Questions evaluated: {evaluation.questions_evaluated}\n"
+            f"{metric_lines}\n"
+            f"{metrics}"
+        )
 
 
 def main() -> None:
