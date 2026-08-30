@@ -18,6 +18,18 @@ DEFAULT_CUTOFFS = (1, 3, 5, 10)
 QuestionT = TypeVar("QuestionT", bound=UnansweredQuestion)
 
 
+class StudentDataError(ValueError):
+    """Raised when student search results are invalid for evaluation."""
+
+
+class DatasetError(ValueError):
+    """Raised when the ground-truth dataset is invalid for evaluation."""
+
+
+class EvaluationConfigurationError(ValueError):
+    """Raised when evaluator configuration is invalid."""
+
+
 @dataclass(frozen=True)
 class RecallEvaluation:
     """Aggregate diagnostics and macro Recall@k values."""
@@ -81,12 +93,13 @@ def question_recall(
 def _index_by_question_id(
     questions: Sequence[QuestionT],
     label: str,
+    error_type: type[ValueError],
 ) -> dict[str, QuestionT]:
     """Index questions while rejecting ambiguous duplicate identifiers."""
     indexed: dict[str, QuestionT] = {}
     for question in questions:
         if question.question_id in indexed:
-            raise ValueError(
+            raise error_type(
                 f"Duplicate question_id in {label}: {question.question_id}"
             )
         indexed[question.question_id] = question
@@ -102,16 +115,25 @@ def evaluate_search_results(
 ) -> RecallEvaluation:
     """Macro-average per-question source recall at each requested cutoff."""
     if max_context_length <= 0:
-        raise ValueError("max_context_length must be positive")
+        raise EvaluationConfigurationError(
+            "max_context_length must be positive"
+        )
     if not 0 <= min_iou <= 1:
-        raise ValueError("min_iou must be between 0 and 1")
+        raise EvaluationConfigurationError("min_iou must be between 0 and 1")
     if not cutoffs or any(k < 0 for k in cutoffs):
-        raise ValueError("cutoffs must contain non-negative values")
+        raise EvaluationConfigurationError(
+            "cutoffs must contain non-negative values"
+        )
 
-    ground_truth = _index_by_question_id(dataset.rag_questions, "ground truth")
+    ground_truth = _index_by_question_id(
+        dataset.rag_questions,
+        "ground truth",
+        DatasetError,
+    )
     student_results = _index_by_question_id(
         student.search_results,
         "student results",
+        StudentDataError,
     )
     unknown_ids = [
         question_id
@@ -119,7 +141,9 @@ def evaluate_search_results(
         if question_id not in ground_truth
     ]
     if unknown_ids:
-        raise ValueError(f"Unknown student question_id: {unknown_ids[0]}")
+        raise StudentDataError(
+            f"Unknown student question_id: {unknown_ids[0]}"
+        )
 
     for result in student.search_results:
         for candidate in result.retrieved_sources:
@@ -128,7 +152,7 @@ def evaluate_search_results(
                 - candidate.first_character_index
                 > max_context_length
             ):
-                raise ValueError(
+                raise StudentDataError(
                     "Student source exceeds max_context_length: "
                     f"{candidate.file_path}"
                 )
@@ -139,7 +163,9 @@ def evaluate_search_results(
         if isinstance(question, AnsweredQuestion) and question.sources
     ]
     if not evaluable:
-        raise ValueError("Dataset has no questions with ground-truth sources")
+        raise DatasetError(
+            "Dataset has no questions with ground-truth sources"
+        )
 
     recall_at = {
         k: sum(

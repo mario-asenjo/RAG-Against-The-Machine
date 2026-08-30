@@ -167,3 +167,15 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   0.354/0.545/0.606/0.667 at Recall@1/3/5/10.
 - No ranking, BM25, chunking, index, dependency, or moulinette integration was
   changed. Fresh local gates: `make check` passes with 67 tests.
+
+## 2026-08-30 — #35 post-#11 evaluate polish
+- Rounded displayed Recall percentages to one decimal place while preserving the
+  underlying macro Recall@k values and exact metric dictionary.
+- Added three local typed evaluation errors so student, dataset, and configuration
+  failures retain their provenance without inspecting exception strings.
+- Updated current state and README CLI contracts; #12 remains the next candidate
+  in `Todo`, not active work.
+- Focused evaluator tests pass with 25 tests. Fresh final `make check` passes with
+  76 tests; Flake8, strict mypy, and context validation pass.
+- No IoU, threshold, recall formula, subject model, dependency, retrieval, or
+  recorded metric changed. Ponytail `full` kept the three-error local taxonomy.

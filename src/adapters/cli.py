@@ -9,6 +9,9 @@ import fire
 
 from src.application.ports import Chunker
 from src.application.use_cases import (
+    DatasetError,
+    EvaluationConfigurationError,
+    StudentDataError,
     build_lexical_index,
     evaluate_search_results,
 )
@@ -178,7 +181,9 @@ class RagCli:
                 Path(dataset_path).read_text(encoding="utf-8")
             )
         except (OSError, RuntimeError, ValueError) as error:
-            raise fire.core.FireError(str(error)) from error
+            raise fire.core.FireError(
+                f"Dataset is valid: False\n{error}"
+            ) from error
 
         try:
             evaluation = evaluate_search_results(
@@ -186,9 +191,17 @@ class RagCli:
                 dataset,
                 max_context_length=max_context_length,
             )
-        except (RuntimeError, ValueError) as error:
+        except StudentDataError as error:
             raise fire.core.FireError(
                 f"Student data is valid: {student_data_is_valid}\n{error}"
+            ) from error
+        except DatasetError as error:
+            raise fire.core.FireError(
+                f"Dataset is valid: False\n{error}"
+            ) from error
+        except EvaluationConfigurationError as error:
+            raise fire.core.FireError(
+                f"Configuration error: {error}"
             ) from error
         student_data_is_valid = True
 
@@ -197,7 +210,7 @@ class RagCli:
             for k, recall in evaluation.recall_at.items()
         }
         metric_lines = "\n".join(
-            f"Recall@{k}: {recall:.3f} ({recall*100}%)"
+            f"Recall@{k}: {recall:.3f} ({recall * 100:.1f}%)"
             for k, recall in evaluation.recall_at.items()
         )
         return (
