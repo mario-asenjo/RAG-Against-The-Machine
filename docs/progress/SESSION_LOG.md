@@ -141,3 +141,16 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
 - Official Ponytail `full` review used `DietrichGebert/ponytail` at `1b2760d`.
   Its duplicate-test-fixture finding was applied by consolidating dataset tests
   into `tests/test_search.py`; production design remained unchanged.
+
+## 2026-08-29 — #10 public retrieval baseline
+- Corrected single-query `search` to print ranked
+  `file_path [first_character_index:last_character_index]` locations while
+  retaining the exact Pydantic wrapper for evaluator-facing dataset output.
+- Public `k=10` retrieval took 6.720 seconds for 100 docs questions and 5.467
+  seconds for 99 code questions on Windows; the supplied moulinette under WSL
+  validated both outputs at Docs Recall@5 0.870 and Code Recall@5 0.606.
+- Existing index timing remains below 300 seconds; private timing and recall
+  remain unclaimed, and no code-recall optimization was added.
+- Fresh final evidence: `make check` passes with 51 tests. Ponytail `full`
+  removed the redundant single-query output wrapper and caught Fire's extra
+  trailing newline; no new abstraction or dependency was introduced.
