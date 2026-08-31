@@ -216,17 +216,21 @@ def test_evaluation_rejects_empty_ground_truth_and_oversized_source() -> None:
 def run_evaluate(
     student_path: Path,
     dataset_path: Path,
+    max_context_length: int | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run evaluate through the Fire CLI."""
+    command = [
+        sys.executable,
+        "-m",
+        "src",
+        "evaluate",
+        f"--student_search_results_path={student_path}",
+        f"--dataset_path={dataset_path}",
+    ]
+    if max_context_length is not None:
+        command.append(f"--max_context_length={max_context_length}")
     return subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "src",
-            "evaluate",
-            f"--student_search_results_path={student_path}",
-            f"--dataset_path={dataset_path}",
-        ],
+        command,
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -263,57 +267,50 @@ def test_evaluate_cli_smoke_reports_macro_recall(tmp_path: Path) -> None:
     assert "recall@5" in completed.stdout
 
 
-@pytest.mark.parametrize(
-    ("student_content", "dataset_content", "student_is_invalid"),
-    [
-        (None, "{}", True),
-        ("not json", "{}", True),
-        ("{}", "{}", True),
-        (
-            '{"search_results": [], "k": 10}',
-            '{"rag_questions": [{}]}',
-            False,
-        ),
-    ],
-)
-def test_evaluate_cli_handles_invalid_input_without_traceback(
-    tmp_path: Path,
-    student_content: str | None,
-    dataset_content: str,
-    student_is_invalid: bool,
-) -> None:
-    """Missing, malformed, and schema-invalid input become concise errors."""
-    student_path = tmp_path / "student.json"
-    dataset_path = tmp_path / "dataset.json"
-    if student_content is not None:
-        student_path.write_text(student_content, encoding="utf-8")
-    dataset_path.write_text(dataset_content, encoding="utf-8")
-
-    completed = run_evaluate(student_path, dataset_path)
-
-    assert completed.returncode != 0
-    assert "Traceback" not in completed.stderr
-    assert ("Student data is valid: False" in completed.stderr) is (
-        student_is_invalid
-    )
-
-
-def test_evaluate_cli_marks_evaluation_errors_as_invalid_student_data(
+def test_evaluate_cli_formats_periodic_recall_percentage(
     tmp_path: Path,
 ) -> None:
-    """Semantic student-result errors should report invalid student data."""
+    """Periodic recall should use one decimal place in its percentage."""
+    expected_sources = [
+        source("first.py"),
+        source("second.py"),
+        source("third.py"),
+    ]
     dataset_path = tmp_path / "answered.json"
     student_path = tmp_path / "student.json"
     dataset_path.write_text(
         RagDataset(
-            rag_questions=[answered("q1", [source()])]
+            rag_questions=[answered("q1", expected_sources)]
         ).model_dump_json(),
         encoding="utf-8",
     )
     student_path.write_text(
         StudentSearchResults(
-            search_results=[result("unknown", [source()])],
+            search_results=[result("q1", expected_sources[:1])],
             k=10,
+        ).model_dump_json(),
+        encoding="utf-8",
+    )
+
+    completed = run_evaluate(student_path, dataset_path)
+
+    assert completed.returncode == 0, completed.stderr
+    assert "Recall@5: 0.333 (33.3%)" in completed.stdout
+
+
+@pytest.mark.parametrize("student_content", [None, "not json", "{}"])
+def test_evaluate_cli_identifies_invalid_student_input(
+    tmp_path: Path,
+    student_content: str | None,
+) -> None:
+    """Student file and model failures should have student provenance."""
+    student_path = tmp_path / "student.json"
+    dataset_path = tmp_path / "dataset.json"
+    if student_content is not None:
+        student_path.write_text(student_content, encoding="utf-8")
+    dataset_path.write_text(
+        RagDataset(
+            rag_questions=[answered("q1", [source()])]
         ).model_dump_json(),
         encoding="utf-8",
     )
@@ -322,4 +319,104 @@ def test_evaluate_cli_marks_evaluation_errors_as_invalid_student_data(
 
     assert completed.returncode != 0
     assert "Student data is valid: False" in completed.stderr
+    assert "Traceback" not in completed.stderr
+
+
+@pytest.mark.parametrize("kind", ["duplicate", "unknown", "oversized"])
+def test_evaluate_cli_identifies_student_semantic_errors(
+    tmp_path: Path,
+    kind: str,
+) -> None:
+    """Student semantic failures should have student provenance."""
+    student_path = tmp_path / "student.json"
+    dataset_path = tmp_path / "dataset.json"
+    dataset_path.write_text(
+        RagDataset(
+            rag_questions=[answered("q1", [source()])]
+        ).model_dump_json(),
+        encoding="utf-8",
+    )
+    results = [result("q1", [source()])]
+    if kind == "duplicate":
+        results *= 2
+    elif kind == "unknown":
+        results = [result("unknown", [source()])]
+    else:
+        results = [result("q1", [source(last=2001)])]
+    student_path.write_text(
+        StudentSearchResults(search_results=results, k=10).model_dump_json(),
+        encoding="utf-8",
+    )
+
+    completed = run_evaluate(student_path, dataset_path)
+
+    assert completed.returncode != 0
+    assert "Student data is valid: False" in completed.stderr
+    assert "Traceback" not in completed.stderr
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["missing", "malformed", "duplicate", "no_ground_truth"],
+)
+def test_evaluate_cli_identifies_dataset_errors(
+    tmp_path: Path,
+    kind: str,
+) -> None:
+    """Dataset failures should not be mislabeled as invalid student data."""
+    student_path = tmp_path / "student.json"
+    dataset_path = tmp_path / "dataset.json"
+    student_path.write_text(
+        StudentSearchResults(search_results=[], k=10).model_dump_json(),
+        encoding="utf-8",
+    )
+    if kind == "malformed":
+        dataset_path.write_text("not json", encoding="utf-8")
+    elif kind == "duplicate":
+        dataset_path.write_text(
+            RagDataset(
+                rag_questions=[
+                    answered("q1", [source()]),
+                    answered("q1", [source()]),
+                ]
+            ).model_dump_json(),
+            encoding="utf-8",
+        )
+    elif kind == "no_ground_truth":
+        dataset_path.write_text(
+            RagDataset(
+                rag_questions=[answered("q1", [])]
+            ).model_dump_json(),
+            encoding="utf-8",
+        )
+
+    completed = run_evaluate(student_path, dataset_path)
+
+    assert completed.returncode != 0
+    assert "Dataset is valid: False" in completed.stderr
+    assert "Student data is valid: False" not in completed.stderr
+    assert "Traceback" not in completed.stderr
+
+
+def test_evaluate_cli_identifies_configuration_errors(tmp_path: Path) -> None:
+    """Invalid evaluator configuration should have configuration provenance."""
+    student_path = tmp_path / "student.json"
+    dataset_path = tmp_path / "dataset.json"
+    student_path.write_text(
+        StudentSearchResults(search_results=[], k=10).model_dump_json(),
+        encoding="utf-8",
+    )
+    dataset_path.write_text(
+        RagDataset(
+            rag_questions=[answered("q1", [source()])]
+        ).model_dump_json(),
+        encoding="utf-8",
+    )
+
+    completed = run_evaluate(student_path, dataset_path, max_context_length=0)
+
+    assert completed.returncode != 0
+    assert "Configuration error:" in completed.stderr
+    assert "Student data is valid: False" not in completed.stderr
+    assert "Dataset is valid: False" not in completed.stderr
     assert "Traceback" not in completed.stderr

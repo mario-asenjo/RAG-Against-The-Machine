@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M3 — Evaluation and answer pipeline.
+M3 — Local evaluation and robustness.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -31,7 +31,8 @@ M3 — Evaluation and answer pipeline.
   `StudentSearchResults` model to a predictable configurable output path.
 - The public `k=10` baseline processes 199 docs/code questions in 12.187 seconds
   and passes moulinette validation: Docs Recall@5 0.870 and Code Recall@5 0.606.
-- Issue #10 and its public retrieval baseline are closed.
+- Issues #10 and #11 are closed; the public retrieval baseline and local
+  evaluator are complete.
 - The project-owned `evaluate` command computes per-question source Recall@k
   and macro-averages it across questions with non-empty ground truth.
 - Local evaluation reproduces the recorded moulinette values at every cutoff:
@@ -39,11 +40,13 @@ M3 — Evaluation and answer pipeline.
   Recall@1/3/5/10.
 
 ## Active issue
-[#11 Implement Recall@k evaluation](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/11)
-is the active M3 slice.
+[#35 Polish evaluate output and error provenance after #11](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/35)
+is a bounded post-#11 correction with no retrieval changes.
 
-## Next smallest step
-Complete #11 delivery and CI validation without changing retrieval behavior.
+## Next candidate
+After #35 is reviewed and merged, consider
+[#12 Harden retrieval and evaluator edge cases](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/12).
+Issue #12 remains in `Todo`; it is not in progress.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

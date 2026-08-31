@@ -50,14 +50,27 @@ uv run python -m src search "What is paged attention?" \
   --k 5
 
 uv run python -m src search_dataset \
-  --dataset_path data/input/dataset_docs_public.json \
+  --dataset_path data/datasets/datasets_public/public/UnansweredQuestions/dataset_docs_public.json \
   --index_directory data/processed \
-  --save_directory data/output/search_results \
+  --save_directory data/output/search_results/UnansweredQuestions \
   --k 5
+
+uv run python -m src evaluate \
+  --student_search_results_path \
+    data/output/search_results/UnansweredQuestions/dataset_docs_public.json \
+  --dataset_path data/datasets/datasets_public/public/AnsweredQuestions/dataset_docs_public.json \
+  --max_context_length 2000
 ```
 
-Both search commands serialize the subject's `StudentSearchResults` model.
-`search` prints one wrapped result; `search_dataset` writes one output file with
-the input filename while preserving question identity and order. Commands whose
-implementation issues are still open fail explicitly instead of pretending to
-be complete.
+`search` prints ranked human-readable locations as
+`file_path [first_character_index:last_character_index]`. `search_dataset`
+serializes the subject's exact `StudentSearchResults` model to a file named
+after the input dataset while preserving question identity and order. Its
+default output directory is
+`data/output/search_results/UnansweredQuestions`.
+
+`evaluate` validates a `StudentSearchResults` file against an answered
+`RagDataset` and prints macro Recall@1/3/5/10 diagnostics. Invalid student,
+dataset, and evaluator-configuration inputs exit non-zero with a clear error
+and no traceback. Commands whose implementation issues are still open fail
+explicitly instead of pretending to be complete.
