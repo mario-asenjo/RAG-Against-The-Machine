@@ -40,13 +40,23 @@ M3 — Local evaluation and robustness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#35 Polish evaluate output and error provenance after #11](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/35)
-is a bounded post-#11 correction with no retrieval changes.
+[#12 Harden retrieval and evaluator edge cases](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/12)
+has completed local verification and awaits PR review/manual merge.
+Issue #35 and PR #36 are merged.
+
+- Existing boundary handling already satisfies the required error cases; no
+  production refactor or exception hierarchy was needed.
+- Added CLI coverage for no-match/zero-limit success and batch missing/corrupt
+  index or empty-query failure, including preservation of previous output.
+- Fresh `make check`: context, Flake8, mypy (29 files), and 81 tests pass.
+- Exact fixture CLI smokes confirm exit 0 with a newline for no matches/zero
+  limit, and exit 2 without tracebacks for missing/malformed inputs.
 
 ## Next candidate
-After #35 is reviewed and merged, consider
-[#12 Harden retrieval and evaluator edge cases](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/12).
-Issue #12 remains in `Todo`; it is not in progress.
+After #12 is reviewed and merged, start
+[#24 Validate minimal Qwen/Qwen3-0.6B inference runtime](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/24)
+in M4. Keep #13/#14 generation integration and #25 complete clean-checkout
+rehearsal separate. Answer commands remain placeholders.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

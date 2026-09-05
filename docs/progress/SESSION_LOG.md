@@ -179,3 +179,20 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   76 tests; Flake8, strict mypy, and context validation pass.
 - No IoU, threshold, recall formula, subject model, dependency, retrieval, or
   recorded metric changed. Ponytail `full` kept the three-error local taxonomy.
+
+## 2026-09-05 — #12 retrieval/evaluator edge coverage
+- Baseline: 41 focused search/evaluation tests passed after `uv sync` on
+  Windows with CPython 3.14.6. Existing production error handling needed no fix.
+- Added five regression cases using existing fixture/CLI helpers: no-match and
+  zero-limit search success, plus batch missing/corrupt index and empty-query
+  failure preserving previous output. No production files/dependencies changed.
+- Final focused tests: 46 passed. `make check`: context and Flake8 passed,
+  mypy passed over 29 files, 81 tests passed in 28.91s. `git diff --check` passed.
+- Eight exact `uv run python -m src` fixture smokes: empty query, missing index,
+  missing/malformed search dataset, malformed student and evaluator dataset
+  exited 2; gibberish and `k=0` exited 0 with stdout `\n` and empty stderr.
+  All were traceback-free. Complete captured argv/stdout/stderr are in the PR.
+- No public benchmark rerun: retrieval semantics are unchanged. No private
+  inputs, generated outputs, model downloads, or answer implementation used.
+- Next candidate after manual merge: #24 CPU-capable Qwen runtime validation;
+  #13/#14 integration and #25 final rehearsal remain separate.

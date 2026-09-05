@@ -138,6 +138,25 @@ def test_search_cli_emits_ranked_source_locations(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("query", "k"),
+    [("asdfghjkl zxcvbnm qwertyuiop", 10), ("vLLM", 0)],
+)
+def test_search_cli_returns_empty_output(
+    tmp_path: Path,
+    query: str,
+    k: int,
+) -> None:
+    """No matches and zero limits succeed without diagnostics or sources."""
+    index_path = make_index(tmp_path)
+
+    result = run_search(index_path.parent, query, k)
+
+    assert result.returncode == 0
+    assert result.stdout == "\n"
+    assert result.stderr == ""
+
+
 def test_search_cli_reports_corrupt_index_without_traceback(
     tmp_path: Path,
 ) -> None:
@@ -325,3 +344,44 @@ def test_search_dataset_rejects_negative_k_without_traceback(
     assert result.returncode != 0
     assert "k must be non-negative" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize("kind", ["missing", "corrupt", "empty_query"])
+def test_search_dataset_failure_preserves_existing_output(
+    tmp_path: Path,
+    kind: str,
+) -> None:
+    """Batch failures retain previous results and expose their cause."""
+    index_directory = tmp_path / "index"
+    query = "vLLM"
+    if kind == "corrupt":
+        index_directory.mkdir()
+        (index_directory / "lexical_index.sqlite3").write_text(
+            "not sqlite", encoding="utf-8"
+        )
+        message = "Could not search lexical index"
+    elif kind == "empty_query":
+        make_index(index_directory)
+        query = ""
+        message = "searchable terms"
+    else:
+        message = "Lexical index not found"
+    dataset_path = tmp_path / "questions.json"
+    dataset_path.write_text(
+        json.dumps({"rag_questions": [{"question": query}]}),
+        encoding="utf-8",
+    )
+    output_directory = tmp_path / "results"
+    output_directory.mkdir()
+    output_path = output_directory / dataset_path.name
+    output_path.write_text("previous output", encoding="utf-8")
+
+    result = run_search_dataset(
+        dataset_path, index_directory, output_directory
+    )
+
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert message in result.stderr
+    assert "Traceback" not in result.stderr
+    assert output_path.read_text(encoding="utf-8") == "previous output"
