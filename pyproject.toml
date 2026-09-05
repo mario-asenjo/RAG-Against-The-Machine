@@ -7,6 +7,8 @@ dependencies = [
   "fire>=0.7,<1",
   "pydantic>=2.10,<3",
   "tqdm>=4.67,<5",
+  "torch==2.10.0",
+  "transformers==4.57.6",
 ]
 
 [dependency-groups]
@@ -28,3 +30,11 @@ check_untyped_defs = true
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
