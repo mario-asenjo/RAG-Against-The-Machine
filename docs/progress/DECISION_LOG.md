@@ -48,3 +48,28 @@ sources matched in the top-k by exact path and half-open span IoU strictly above
 the macro-average of per-question recalls. Questions without ground-truth
 sources are excluded; missing student results contribute zero. This deliberately
 differs from HitRate@k, micro-recall, and duplicate-sensitive counting.
+
+## D-0009 — Isolated Qwen CPU runtime and bounded context
+**Status:** accepted for #24; integration remains #13/#14.
+
+Use Qwen/Qwen3-0.6B with pinned Transformers 4.57.6 and torch 2.10.0 CPU
+wheels. Pin the uv interpreter to Python 3.10 to align dependency resolution
+with CI/mypy; the initial Python 3.14/NumPy 2.5 type incompatibility is documented,
+not hidden by weaker checks. Use CPU float32 and `enable_thinking=False` as the
+measured starting point. Full provenance, runnable probe and limitations live in
+`docs/project/09_GENERATION_RUNTIME.md`.
+
+The model capacity (40,960) bounds the tokenizer's advertised 131,072. Ignore
+sentinel limits and default to a configurable 2,048 total-token operational budget,
+including a 128-token answer reservation. Count the real complete chat template,
+including generation/special tokens, before loading/generating. Only short-prompt
+memory is measured; maximum architectural context is not a hardware guarantee.
+
+Keep runtime details inside the future replaceable adapter; use only the minimal
+fakeable interface needed by #13. Exact SQLite source lookup, complete ranked
+fragments, source preservation, lazy abstention and Python-owned JSON remain the
+approved #13/#14 plan, not delivered functionality here. No extra backend/framework.
+
+Q4 is resolved for this measured host. Q5 remains open for evaluator network/cache:
+local-only reuse works after explicit public download, but evaluator access is not
+known. Weights/cache stay ignored and must be provisioned before offline execution.

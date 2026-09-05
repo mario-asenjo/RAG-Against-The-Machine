@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M3 — Local evaluation and robustness.
+M4 — Answer generation.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -40,23 +40,25 @@ M3 — Local evaluation and robustness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#12 Harden retrieval and evaluator edge cases](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/12)
-has completed local verification and awaits PR review/manual merge.
-Issue #35 and PR #36 are merged.
+[#24 Validate minimal Qwen/Qwen3-0.6B inference runtime](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/24)
+is locally demonstrated; PR review/manual merge remains required.
+Issue #12 and PR #37 are merged; retrieval/evaluator robustness is complete.
 
-- Existing boundary handling already satisfies the required error cases; no
-  production refactor or exception hierarchy was needed.
-- Added CLI coverage for no-match/zero-limit success and batch missing/corrupt
-  index or empty-query failure, including preservation of previous output.
-- Fresh `make check`: context, Flake8, mypy (29 files), and 81 tests pass.
-- Exact fixture CLI smokes confirm exit 0 with a newline for no matches/zero
-  limit, and exit 2 without tracebacks for missing/malformed inputs.
+- CPU runtime: Transformers 4.57.6, torch 2.10.0+cpu, CPython 3.10.20.
+- Real no-thinking generation returned `Paris.` with cache-only loading verified.
+- The full template uses 48 tokens; 128 reserved output tokens fit a configurable
+  2,048-token budget. Exact-boundary and invalid-budget smokes pass.
+- Supported context is capped by model config at 40,960, not the tokenizer's
+  131,072; sentinel tokenizer limits are ignored.
+- Fresh `make check` passes with 81 tests; no production/retrieval code changed.
+- See `docs/project/09_GENERATION_RUNTIME.md` for timings, observed memory,
+  dependency/cache limitations and the exact reproducible probe.
 
 ## Next candidate
-After #12 is reviewed and merged, start
-[#24 Validate minimal Qwen/Qwen3-0.6B inference runtime](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/24)
-in M4. Keep #13/#14 generation integration and #25 complete clean-checkout
-rehearsal separate. Answer commands remain placeholders.
+After #24 is reviewed and merged, implement #13 (`answer` and the shared
+source-to-answer path), then #14 (`answer_dataset`) in separate iterations/PRs.
+The approved boundaries are recorded in the runtime document. Neither has started;
+answer commands remain placeholders. Keep #25 final clean-checkout rehearsal separate.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

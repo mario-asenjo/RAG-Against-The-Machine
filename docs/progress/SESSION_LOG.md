@@ -196,3 +196,28 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   inputs, generated outputs, model downloads, or answer implementation used.
 - Next candidate after manual merge: #24 CPU-capable Qwen runtime validation;
   #13/#14 integration and #25 final rehearsal remain separate.
+
+## 2026-09-05 — #24 isolated Qwen CPU runtime
+- Started from merged #12 / PR #37 at a489fea. Scope is runtime validation only;
+  no `src/`, retrieval, source loader, generator interface or answer integration.
+- Pinned Transformers 4.57.6 and torch 2.10.0 CPU wheels with an explicit uv index.
+  Initial Python 3.14 generation succeeded, but NumPy 2.5 stubs broke the Python
+  3.10 mypy target. `.python-version` now selects 3.10; uv sync and gates pass
+  with CPython 3.10.20/NumPy 2.2.6 without weakening checks.
+- Real Qwen revision c1899de289a04d12100db370d81485cdf75e47ca returned `Paris.`
+  in CPU float32/no-thinking mode. Final cache-only process: model load 2.4639s,
+  generation 1.0022s; sampled process-tree peak RSS 4,677,201,920 bytes.
+  Initial download+load was 51.4322s on Python 3.14, not a like-for-like benchmark.
+- Config capacity 40,960 bounds tokenizer 131,072. Complete template is 48 tokens;
+  128 reserved output tokens fit the configurable 2,048 budget. Budget 176 succeeds;
+  175, 40,961 and zero output reservation fail before loading weights. Sentinel
+  handling and render/tokenize equivalence assertions passed with the real tokenizer.
+- `docs/project/09_GENERATION_RUNTIME.md` retains exact runnable probe, versions,
+  observations and limitations; disposable script is not retained as production.
+  Weights/cache stay ignored. Q4 resolved by D-0009; evaluator network/cache Q5
+  and full-context memory remain unverified. No private inputs were touched.
+- Fresh final local gates: `uv sync --locked`, `make check` (81 tests in 18.55s,
+  mypy over 29 files, Flake8/context) and `git diff --check` passed.
+- Ponytail full is skill-based; slash review/audit is not exposed. Independent
+  review outcome and CI readback belong to the PR. Final clean-clone rehearsal
+  remains #25. Next: #13 only after manual merge, then #14 in its own iteration.
