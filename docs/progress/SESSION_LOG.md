@@ -227,7 +227,7 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   resolved runtime selection and pin exact lookup, budgeting, abstention, output,
   error and #14 non-goal criteria; Project #12 moved #13 to In Progress.
 - RED: `tests/test_answer.py` failed collection because the answer use case did
-  not exist. Added 24 focused regressions, then the minimum shared application
+  not exist. Added 29 focused regressions, then the minimum shared application
   result/use case, one `TextGenerator` Protocol, exact SQLite hydration, lazy
   Qwen adapter and Fire `answer` composition. No domain model/dependency change.
 - Exact loader queries path and both offsets per source in received order and
@@ -245,8 +245,8 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   slice. Real template: base 66, complete prompt 265, plus 128 reserved = 393
   under budget 2,048 and supported limit 40,960. Sampled process-tree peak RSS:
   4,660,158,464 bytes, with #24 sampling caveats. No private data was used.
-- Fresh final local evidence after review fixes: `uv sync --locked`; 24 focused tests;
-  `make check` (105 tests in 60.22s, mypy 33 files, Flake8/context); strict mypy;
+- Fresh final local evidence after review fixes: `uv sync --locked`; 29 focused tests;
+  `make check` (110 tests in 124.01s, mypy 33 files, Flake8/context); strict mypy;
   and `git diff --check` all passed. Exact commands/output live in the PR and
   `docs/project/10_GROUNDED_ANSWER.md`.
 - Initial independent correctness review found no implementation blocker. Ponytail
@@ -259,8 +259,11 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   SQLite case rejects a stale source even outside the fitted prompt prefix. The
   re-audit then showed generation-specific context/thinking mutations survived;
   a tokenizer/model-fake test now pins the actual generate-side message and flags.
-  Final independent re-review killed all five requested mutations (count/generate
-  context, generate thinking, ranked skip, partial hydration), found no blockers,
-  and reran 24 focused/105 full tests without editing the repository.
+  The first re-review killed five requested mutations (count/generate context,
+  generate thinking, ranked skip, partial hydration) at 24 focused/105 full tests.
+  A later-delivered audit found supported-context, non-positive/equal reservation,
+  and whitespace-only output guards insufficiently pinned. Five additional cases
+  now protect them without production changes; final evidence is 29 focused/110
+  full tests.
 - #14 remains Todo/unstarted: no dataset loop, tqdm batch generation, shared batch
   connection/model lifecycle assertion, or atomic batch replacement in this slice.

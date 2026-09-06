@@ -222,6 +222,66 @@ def test_answer_rejects_stale_source_outside_fitted_prefix(
     assert generator.generated == []
 
 
+@pytest.mark.parametrize(
+    ("token_budget", "max_new_tokens", "supported", "message"),
+    [
+        (100, 10, 99, "supported context"),
+        (100, 0, 40960, "max_new_tokens must be positive"),
+        (100, -1, 40960, "max_new_tokens must be positive"),
+        (100, 100, 40960, "smaller than token_budget"),
+    ],
+)
+def test_answer_rejects_invalid_runtime_budget(
+    token_budget: int,
+    max_new_tokens: int,
+    supported: int,
+    message: str,
+) -> None:
+    """Every D-0009 budget guard must fail before generation."""
+    item = source("file.py", 0, 1)
+    search = MinimalSearchResults(
+        question="question",
+        retrieved_sources=[item],
+    )
+    generator = FakeGenerator(supported_tokens=supported)
+
+    with pytest.raises(ValueError, match=message):
+        answer_search_result(
+            search,
+            lambda sources: ["x"],
+            generator,
+            token_budget=token_budget,
+            max_new_tokens=max_new_tokens,
+        )
+
+    assert generator.generated == []
+
+
+def test_answer_rejects_whitespace_generator_output() -> None:
+    """Empty model text is a technical failure, never a valid answer."""
+    item = source("file.py", 0, 1)
+    context = "[Source 1: file.py [0:1]]\nx"
+    search = MinimalSearchResults(
+        question="question",
+        retrieved_sources=[item],
+    )
+    generator = FakeGenerator(
+        token_counts={"": 10, context: 20},
+        answer="  \n",
+    )
+
+    with pytest.raises(RuntimeError, match="empty answer"):
+        answer_search_result(
+            search,
+            lambda sources: ["x"],
+            generator,
+            token_budget=100,
+            max_new_tokens=10,
+        )
+
+    assert generator.generated == [("question", context, 10)]
+
+
 def test_answer_rejects_base_prompt_before_loading_sources() -> None:
     """Base prompt overflow fails before source I/O and generation."""
     search = MinimalSearchResults(

@@ -56,7 +56,7 @@ Issues #12/#24 and PRs #37/#38 are merged.
   clear technical errors rather than abstentions.
 - Fresh public vLLM v0.10.1/Qwen smoke answered the Volta question from the exact
   647-character source: 265 prompt + 128 reserved = 393 tokens; wall time 26.5680s.
-- Fresh gates: 24 focused tests; `make check` passes with 105 tests; strict mypy,
+- Fresh gates: 29 focused tests; `make check` passes with 110 tests; strict mypy,
   Flake8, context validation, `uv sync --locked`, and `git diff --check` pass.
 - See `docs/project/10_GROUNDED_ANSWER.md` for contracts and full fresh evidence.
 
