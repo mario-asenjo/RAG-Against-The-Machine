@@ -40,25 +40,30 @@ M4 — Answer generation.
   Recall@1/3/5/10.
 
 ## Active issue
-[#24 Validate minimal Qwen/Qwen3-0.6B inference runtime](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/24)
-is locally demonstrated; PR review/manual merge remains required.
-Issue #12 and PR #37 are merged; retrieval/evaluator robustness is complete.
+[#13 Integrate Qwen/Qwen3-0.6B and grounded answer command](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/13)
+is implemented and locally verified; PR review/manual merge remains required.
+Issues #12/#24 and PRs #37/#38 are merged.
 
-- CPU runtime: Transformers 4.57.6, torch 2.10.0+cpu, CPython 3.10.20.
-- Real no-thinking generation returned `Paris.` with cache-only loading verified.
-- The full template uses 48 tokens; 128 reserved output tokens fit a configurable
-  2,048-token budget. Exact-boundary and invalid-budget smokes pass.
-- Supported context is capped by model config at 40,960, not the tokenizer's
-  131,072; sentinel tokenizer limits are ignored.
-- Fresh `make check` passes with 81 tests; no production/retrieval code changed.
-- See `docs/project/09_GENERATION_RUNTIME.md` for timings, observed memory,
-  dependency/cache limitations and the exact reproducible probe.
+- `answer` performs one existing BM25 search and hydrates only exact SQLite
+  `(file_path, first_character_index, last_character_index)` source tuples.
+- A minimal `TextGenerator` Protocol keeps the shared application path fakeable;
+  the lazy Qwen adapter owns the no-thinking template, token count and generation.
+- Complete ranked chunks fit under configurable 2,048/128 token defaults; all
+  retrieved sources stay in Pydantic output while included prompt sources remain
+  tracked internally.
+- `k=0`/no-match produce an explicit abstention without model assets. Missing or
+  corrupt indexes, stale exact sources, invalid budgets and model failures remain
+  clear technical errors rather than abstentions.
+- Fresh public vLLM v0.10.1/Qwen smoke answered the Volta question from the exact
+  647-character source: 265 prompt + 128 reserved = 393 tokens; wall time 26.5680s.
+- Fresh gates: 24 focused tests; `make check` passes with 105 tests; strict mypy,
+  Flake8, context validation, `uv sync --locked`, and `git diff --check` pass.
+- See `docs/project/10_GROUNDED_ANSWER.md` for contracts and full fresh evidence.
 
 ## Next candidate
-After #24 is reviewed and merged, implement #13 (`answer` and the shared
-source-to-answer path), then #14 (`answer_dataset`) in separate iterations/PRs.
-The approved boundaries are recorded in the runtime document. Neither has started;
-answer commands remain placeholders. Keep #25 final clean-checkout rehearsal separate.
+After #13 is reviewed and manually merged, implement #14 (`answer_dataset`) as a
+separate iteration/PR. It remains Todo and unstarted. Keep #25 clean-checkout
+rehearsal and #16 private holdout separate.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.

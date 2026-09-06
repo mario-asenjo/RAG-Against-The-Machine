@@ -12,14 +12,22 @@ from src.application.use_cases import (
     DatasetError,
     EvaluationConfigurationError,
     StudentDataError,
+    answer_search_result,
     build_lexical_index,
     evaluate_search_results,
 )
 from src.chunking import chunk_python_document, chunk_text_document
-from src.domain import MinimalSearchResults, RagDataset, StudentSearchResults
+from src.domain import (
+    MinimalSearchResults,
+    RagDataset,
+    StudentSearchResults,
+    StudentSearchResultsAndAnswer,
+)
 from src.infrastructure import (
     INDEX_FILENAME,
+    QwenGenerator,
     load_corpus,
+    load_source_texts,
     save_lexical_index,
     search_lexical_index,
     search_lexical_index_batch,
@@ -145,10 +153,59 @@ class RagCli:
             raise fire.core.FireError(str(error)) from error
         return f"Saved student_search_results to {output_path.as_posix()}"
 
-    def answer(self, query: str, k: int = 10) -> NoReturn:
-        """Placeholder for the mandatory single-query answer command."""
-        del query, k
-        self._not_implemented("answer")
+    def answer(
+        self,
+        query: str,
+        k: int = 10,
+        index_directory: str = "data/processed",
+        save_path: str = "data/output/search_results_and_answer/answer.json",
+        model_cache_directory: str = "models/huggingface",
+        token_budget: int = 2048,
+        max_new_tokens: int = 128,
+        local_files_only: bool = False,
+    ) -> str:
+        """Search once, ground one answer, and save the subject wrapper."""
+        try:
+            index_path = Path(index_directory) / INDEX_FILENAME
+            search_result = MinimalSearchResults(
+                question=query,
+                retrieved_sources=search_lexical_index(index_path, query, k),
+            )
+            generator = QwenGenerator(
+                cache_directory=Path(model_cache_directory),
+                local_files_only=local_files_only,
+            )
+            generation = answer_search_result(
+                search_result,
+                lambda sources: load_source_texts(index_path, sources),
+                generator,
+                token_budget=token_budget,
+                max_new_tokens=max_new_tokens,
+            )
+            output = StudentSearchResultsAndAnswer(
+                search_results=[generation.answer],
+                k=k,
+            )
+            output_path = Path(save_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
+                output.model_dump_json(indent=2),
+                encoding="utf-8",
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise fire.core.FireError(str(error)) from error
+
+        sources = "\n".join(
+            f"{source.file_path} "
+            f"[{source.first_character_index}:{source.last_character_index}]"
+            for source in generation.answer.retrieved_sources
+        ) or "(none)"
+        return (
+            f"Answer: {generation.answer.answer}\n"
+            f"Sources:\n{sources}\n"
+            f"Saved student_search_results_and_answer to "
+            f"{output_path.as_posix()}"
+        )
 
     def answer_dataset(
         self,
