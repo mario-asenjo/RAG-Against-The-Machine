@@ -427,6 +427,12 @@ def test_qwen_token_count_uses_question_context_and_no_thinking(
     assert captured.out == ""
     assert "Loading Qwen tokenizer" in captured.err
 
+    quiet_generator = QwenGenerator(Path("unused"), local_files_only=True)
+    quiet_generator.count_prompt_tokens("question text", "evidence text")
+    quiet = capsys.readouterr()
+    assert quiet.out == ""
+    assert quiet.err == ""
+
 
 def test_qwen_generation_reuses_grounded_no_thinking_template(
     monkeypatch: pytest.MonkeyPatch,
