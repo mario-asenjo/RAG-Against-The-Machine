@@ -1,6 +1,6 @@
 # RAG Against the Machine — Hermes Harness
 
-This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations for individual queries and datasets. The single-query `answer` command grounds Qwen/Qwen3-0.6B in exact indexed chunks; `answer_dataset` remains issue-scoped work in progress.
+This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations for individual queries and datasets. The `answer` and sequential `answer_dataset` commands ground Qwen/Qwen3-0.6B in exact indexed chunks.
 
 ## Start here
 
@@ -69,6 +69,14 @@ uv run python -m src answer "What does Volta refer to in vLLM hardware documenta
   --model_cache_directory models/huggingface \
   --token_budget 2048 \
   --max_new_tokens 128
+
+uv run python -m src answer_dataset \
+  --student_search_results_path data/output/search_results/questions.json \
+  --save_directory data/output/search_results_and_answer \
+  --index_directory data/processed \
+  --model_cache_directory models/huggingface \
+  --token_budget 2048 \
+  --max_new_tokens 128
 ```
 
 `search` prints ranked human-readable locations as
@@ -91,5 +99,10 @@ explicit abstention without loading model assets. `--local_files_only=True`
 requires the pinned Qwen snapshot to exist under `--model_cache_directory`;
 `uv sync` installs runtime packages but does not download model weights. See
 `docs/project/09_GENERATION_RUNTIME.md` and
-`docs/project/10_GROUNDED_ANSWER.md`. `answer_dataset` remains explicitly
-unimplemented until issue #14.
+`docs/project/10_GROUNDED_ANSWER.md`.
+
+`answer_dataset` validates prior `StudentSearchResults`, reuses the shared answer
+path sequentially with one lazy Qwen instance and one SQLite connection, preserves
+all input identity/source fields and `k`, and atomically writes the corresponding
+Pydantic wrapper under the input filename. Progress stays on stderr. See
+`docs/project/11_ANSWER_DATASET.md`.

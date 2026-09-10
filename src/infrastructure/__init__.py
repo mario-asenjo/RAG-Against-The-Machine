@@ -5,8 +5,9 @@ from src.infrastructure.generation import QwenGenerator
 from src.infrastructure.index import (
     INDEX_FILENAME,
     load_index_chunks,
-    load_source_texts,
     load_index_metadata,
+    load_source_texts,
+    load_source_texts_from_connection,
     save_lexical_index,
     search_lexical_index,
     search_lexical_index_batch,
@@ -19,6 +20,7 @@ __all__ = [
     "load_index_chunks",
     "load_index_metadata",
     "load_source_texts",
+    "load_source_texts_from_connection",
     "save_lexical_index",
     "search_lexical_index",
     "search_lexical_index_batch",

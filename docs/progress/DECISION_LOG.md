@@ -95,3 +95,19 @@ overflow is a technical budget error. Empty retrieval is the explicit fixed
 abstention and performs no source/model work. Python/Pydantic, never the model,
 owns `StudentSearchResultsAndAnswer` serialization. Single-output writing is kept
 direct; #14 owns atomic batch replacement and shared batch resources.
+
+## D-0011 — Sequential batch reuse and atomic answer output
+**Status:** accepted for #14.
+
+`answer_dataset` consumes validated prior `StudentSearchResults`; it never runs
+retrieval. Process questions in order through `answer_search_result`, preserving
+the exact wrapper `k` and each item's ID, question, order, and retrieved sources.
+Reuse one lazy Qwen adapter and one lazily opened/closed SQLite connection for the
+batch. Empty-source items retain the shared fixed abstention without source or
+model work.
+
+The CLI owns one stderr tqdm batch bar and enables existing Qwen phase bars while
+the reusable generator remains quiet by default. Serialize only the Pydantic
+`StudentSearchResultsAndAnswer` to a closed sibling temporary file, then atomically
+replace `<save_directory>/<input filename>`. Any failure leaves an existing output
+unchanged. No concurrency, retrieval, cache, alternate backend, or new framework.

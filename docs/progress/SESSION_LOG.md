@@ -2,6 +2,23 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-10 — #14 sequential answer_dataset
+- Started from merged #13 / PR #39 at `baea9a4`; protected the unrelated local
+  12048/1280 budget edit in named stash `user-budget-12048-1280-do-not-publish`.
+- RED: all 10 new acceptance cases failed against the placeholder. Implemented one
+  sequential loop over validated prior search results, shared #13 answer flow, one
+  lazy generator, one lazy/shared/closed SQLite connection, stderr tqdm, and atomic
+  Pydantic replacement under the input filename. No retrieval or private data.
+- Focused tests pass 40/40. `uv sync --locked`, `make check` (121 tests in 31.68s),
+  strict mypy over 34 files, Flake8, context validation, and `git diff --check` pass.
+- Public cache-only smoke indexed 1,969 files/17,134 chunks in 5.9469s, prepared two
+  `k=1` searches in 0.6742s, and answered both sequentially in 18.4644s. Output
+  identity/source lists matched input exactly; the weak second source led Qwen to
+  abstain. This is integration evidence, not a quality/private/cache-availability claim.
+- One final Ponytail-full review kept the minimal stdlib design and added only a
+  replacement-failure regression that kills a possible direct-write implementation;
+  the existing production atomic path required no change.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.
