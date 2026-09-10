@@ -1,6 +1,6 @@
 # RAG Against the Machine — Hermes Harness
 
-This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations for individual queries and datasets. Answer commands remain issue-scoped work in progress.
+This repository implements the 42 project **RAG against the machine (subject v2.0)** incrementally. The current mandatory baseline loads the corpus, preserves exact source spans, applies distinct Python and Markdown/text chunking, persists a SQLite FTS5 BM25 index, and returns ranked exact source locations for individual queries and datasets. The single-query `answer` command grounds Qwen/Qwen3-0.6B in exact indexed chunks; `answer_dataset` remains issue-scoped work in progress.
 
 ## Start here
 
@@ -60,6 +60,15 @@ uv run python -m src evaluate \
     data/output/search_results/UnansweredQuestions/dataset_docs_public.json \
   --dataset_path data/datasets/datasets_public/public/AnsweredQuestions/dataset_docs_public.json \
   --max_context_length 2000
+
+
+uv run python -m src answer "What does Volta refer to in vLLM hardware documentation?" \
+  --k 1 \
+  --index_directory data/processed \
+  --save_path data/output/search_results_and_answer/answer.json \
+  --model_cache_directory models/huggingface \
+  --token_budget 2048 \
+  --max_new_tokens 128
 ```
 
 `search` prints ranked human-readable locations as
@@ -72,5 +81,15 @@ default output directory is
 `evaluate` validates a `StudentSearchResults` file against an answered
 `RagDataset` and prints macro Recall@1/3/5/10 diagnostics. Invalid student,
 dataset, and evaluator-configuration inputs exit non-zero with a clear error
-and no traceback. Commands whose implementation issues are still open fail
-explicitly instead of pretending to be complete.
+and no traceback.
+
+`answer` searches once, loads only exact SQLite source tuples, fits complete
+ranked chunks under the real Qwen chat-template budget, prints the answer and
+retrieved locations, and writes the exact Pydantic
+`StudentSearchResultsAndAnswer` wrapper. With `k=0` or no matches it writes an
+explicit abstention without loading model assets. `--local_files_only=True`
+requires the pinned Qwen snapshot to exist under `--model_cache_directory`;
+`uv sync` installs runtime packages but does not download model weights. See
+`docs/project/09_GENERATION_RUNTIME.md` and
+`docs/project/10_GROUNDED_ANSWER.md`. `answer_dataset` remains explicitly
+unimplemented until issue #14.

@@ -2,6 +2,13 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-10 — #13 single-answer Qwen progress
+- Added opt-in tqdm phases around tokenizer/config loading, model loading, and
+  generation; `RagCli.answer` enables them while the reusable adapter stays quiet.
+- Preserved stderr-only progress and the no-model/no-progress abstention path.
+- Focused regressions verify each long phase and CLI enablement; a real cache-only
+  run displayed all three labels and completed with valid Pydantic output.
+
 ## 2026-08-25 — Harness bootstrap
 - Distilled subject v2.0, correction scripts, moulinette README, and dataset packaging assumptions.
 - Reviewed Mario's existing Fly-In/Codexion agent workflow patterns: incremental slices, explicit invariants, fresh evidence, Ponytail review, detailed issues/PRs, manual merge, and Project synchronization caveats.
@@ -221,3 +228,49 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
 - Ponytail full is skill-based; slash review/audit is not exposed. Independent
   review outcome and CI readback belong to the PR. Final clean-clone rehearsal
   remains #25. Next: #13 only after manual merge, then #14 in its own iteration.
+
+## 2026-09-06 — #13 grounded single-query answer
+- Started from merged #24 / PR #38 at f31b50e. Updated #13 first to remove
+  resolved runtime selection and pin exact lookup, budgeting, abstention, output,
+  error and #14 non-goal criteria; Project #12 moved #13 to In Progress.
+- RED: `tests/test_answer.py` failed collection because the answer use case did
+  not exist. Added 29 focused regressions, then the minimum shared application
+  result/use case, one `TextGenerator` Protocol, exact SQLite hydration, lazy
+  Qwen adapter and Fire `answer` composition. No domain model/dependency change.
+- Exact loader queries path and both offsets per source in received order and
+  rejects absent/ambiguous tuples. Budgeting preserves a complete ranked prefix;
+  output preserves all retrieved sources and tracks included sources internally.
+- `k=0` and no-match smokes succeeded in about 0.7s with a deliberately absent
+  local-only model cache, proving fixed Pydantic abstention without model assets.
+  Empty query and missing index exited 2 without tracebacks; focused tests also
+  cover corrupt index, invalid budget, stale source and model/generation failures.
+- Fresh public smoke cloned ignored vLLM tag v0.10.1 at aab5498 and indexed 1,969
+  accepted files/17,360 chunks in 24.5199s. This local checkout is not the supplied
+  retrieval baseline. Real cache-only Qwen answered `Volta refers to SM 7.0 in
+  vLLM hardware documentation.` from one exact 647-character source in 26.5680s.
+- Newline-preserving verification matched SQLite text to the original half-open
+  slice. Real template: base 66, complete prompt 265, plus 128 reserved = 393
+  under budget 2,048 and supported limit 40,960. Sampled process-tree peak RSS:
+  4,660,158,464 bytes, with #24 sampling caveats. No private data was used.
+- Fresh final local evidence after review fixes: `uv sync --locked`; 29 focused tests;
+  `make check` (110 tests in 124.01s, mypy 33 files, Flake8/context); strict mypy;
+  and `git diff --check` all passed. Exact commands/output live in the PR and
+  `docs/project/10_GROUNDED_ANSWER.md`.
+- Initial independent correctness review found no implementation blocker. Ponytail
+  mutation audit found two test-contract gaps: dropping context from the real Qwen
+  message or skipping a non-fitting ranked source could stay green. Added a real
+  adapter message/options regression and a three-source strict-prefix regression;
+  both mutation classes are now detected without adding production code. The
+  generation path now has its own grounded/no-thinking template regression. A
+  follow-up assertion proves all retrieved sources reach hydration, and a real
+  SQLite case rejects a stale source even outside the fitted prompt prefix. The
+  re-audit then showed generation-specific context/thinking mutations survived;
+  a tokenizer/model-fake test now pins the actual generate-side message and flags.
+  The first re-review killed five requested mutations (count/generate context,
+  generate thinking, ranked skip, partial hydration) at 24 focused/105 full tests.
+  A later-delivered audit found supported-context, non-positive/equal reservation,
+  and whitespace-only output guards insufficiently pinned. Five additional cases
+  now protect them without production changes; final evidence is 29 focused/110
+  full tests.
+- #14 remains Todo/unstarted: no dataset loop, tqdm batch generation, shared batch
+  connection/model lifecycle assertion, or atomic batch replacement in this slice.

@@ -73,3 +73,25 @@ approved #13/#14 plan, not delivered functionality here. No extra backend/framew
 Q4 is resolved for this measured host. Q5 remains open for evaluator network/cache:
 local-only reuse works after explicit public download, but evaluator access is not
 known. Weights/cache stay ignored and must be provisioned before offline execution.
+
+## D-0010 — Exact-source, complete-prefix grounded answers
+**Status:** accepted for #13; batch orchestration remains #14.
+
+Single-query `answer` performs one existing lexical search, then resolves every
+ranked source through parameterized SQLite equality on path and both half-open
+offsets. Missing or duplicate identities are errors; no corpus reload, second
+retrieval, all-chunk scan, nearby substitution, or partial fragment is allowed.
+
+The application use case accepts the Pydantic `MinimalSearchResults`, a direct
+source-loader callable, and one minimal `TextGenerator` Protocol. No source port,
+factory, backend registry or dependency container is added. The Qwen adapter owns
+one real no-thinking template for token counting and generation and loads tokenizer
+then model lazily. A frozen local result tracks included sources while the
+`MinimalAnswer` preserves every retrieved source unchanged.
+
+Use a ranked prefix of complete labeled chunks under
+`prompt_tokens + max_new_tokens <= token_budget`. Base-prompt or first-fragment
+overflow is a technical budget error. Empty retrieval is the explicit fixed
+abstention and performs no source/model work. Python/Pydantic, never the model,
+owns `StudentSearchResultsAndAnswer` serialization. Single-output writing is kept
+direct; #14 owns atomic batch replacement and shared batch resources.
