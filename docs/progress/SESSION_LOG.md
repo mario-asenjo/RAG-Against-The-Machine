@@ -2,6 +2,13 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-10 — #13 single-answer Qwen progress
+- Added opt-in tqdm phases around tokenizer/config loading, model loading, and
+  generation; `RagCli.answer` enables them while the reusable adapter stays quiet.
+- Preserved stderr-only progress and the no-model/no-progress abstention path.
+- Focused regressions verify each long phase and CLI enablement; a real cache-only
+  run displayed all three labels and completed with valid Pydantic output.
+
 ## 2026-08-25 — Harness bootstrap
 - Distilled subject v2.0, correction scripts, moulinette README, and dataset packaging assumptions.
 - Reviewed Mario's existing Fly-In/Codexion agent workflow patterns: incremental slices, explicit invariants, fresh evidence, Ponytail review, detailed issues/PRs, manual merge, and Project synchronization caveats.

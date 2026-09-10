@@ -63,6 +63,11 @@ writes one `StudentSearchResultsAndAnswer(search_results=[MinimalAnswer], k=k)`
 using Pydantic. `save_path`, `index_directory`, `model_cache_directory`,
 `token_budget`, `max_new_tokens`, and offline-cache mode are configurable.
 
+Long Qwen work reports three opt-in tqdm phases on stderr: tokenizer/config
+loading, model loading, and generation. The infrastructure adapter stays quiet
+by default; the CLI enables progress. Empty-evidence abstention does not start a
+bar or touch model assets.
+
 Example:
 
 ```text
@@ -112,6 +117,10 @@ Saved student_search_results_and_answer to data/output/issue13/public-answer.jso
 stderr: <empty>
 ```
 
+This original smoke predates the tqdm follow-up. A fresh cache-only run verified
+the three phase labels in order while keeping the answer and Pydantic output on
+stdout/file respectively.
+
 The Pydantic file contained one UUID question, the exact question, `k=1`, answer
 `Volta refers to SM 7.0 in vLLM hardware documentation.`, and the unchanged source:
 
@@ -134,6 +143,6 @@ claim, or proof that evaluator model assets are pre-provisioned.
 
 ## Deferred to #14
 
-No dataset input, sequential loop, tqdm generation progress, shared SQLite batch
-connection, lazy model reuse assertion, or atomic batch replacement is implemented
-here. #14 must reuse this application path only after #13 is manually merged.
+No dataset input, sequential batch progress, shared SQLite batch connection, lazy
+model reuse assertion, or atomic batch replacement is implemented here. #14 must
+reuse this application path only after #13 is manually merged.

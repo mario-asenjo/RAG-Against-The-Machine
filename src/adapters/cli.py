@@ -174,6 +174,7 @@ class RagCli:
             generator = QwenGenerator(
                 cache_directory=Path(model_cache_directory),
                 local_files_only=local_files_only,
+                show_progress=True,
             )
             generation = answer_search_result(
                 search_result,

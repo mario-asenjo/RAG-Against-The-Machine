@@ -371,8 +371,13 @@ def test_supported_context_uses_only_valid_finite_limits(
     assert supported_context(model_limit, tokenizer_limit) == expected
 
 
-def test_qwen_token_count_uses_question_context_and_no_thinking() -> None:
+def test_qwen_token_count_uses_question_context_and_no_thinking(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     """The real adapter must count a grounded no-thinking chat template."""
+    import transformers
+
     class RecordingTokenizer:
         """Capture the adapter's template request without model assets."""
 
@@ -390,8 +395,19 @@ def test_qwen_token_count_uses_question_context_and_no_thinking() -> None:
             return [1, 2, 3]
 
     tokenizer = RecordingTokenizer()
-    generator = QwenGenerator(Path("unused"), local_files_only=True)
-    generator._tokenizer = tokenizer
+    monkeypatch.setattr(
+        transformers.AutoConfig,
+        "from_pretrained",
+        lambda *args, **kwargs: SimpleNamespace(max_position_embeddings=40960),
+    )
+    monkeypatch.setattr(
+        transformers.AutoTokenizer,
+        "from_pretrained",
+        lambda *args, **kwargs: tokenizer,
+    )
+    generator = QwenGenerator(
+        Path("unused"), local_files_only=True, show_progress=True
+    )
 
     count = generator.count_prompt_tokens("question text", "evidence text")
 
@@ -407,11 +423,18 @@ def test_qwen_token_count_uses_question_context_and_no_thinking() -> None:
         "add_generation_prompt": True,
         "enable_thinking": False,
     }
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Loading Qwen tokenizer" in captured.err
 
 
-def test_qwen_generation_reuses_grounded_no_thinking_template() -> None:
+def test_qwen_generation_reuses_grounded_no_thinking_template(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     """Generation must use the same grounded template contract as counting."""
     import torch
+    import transformers
 
     class RecordingTokenizer:
         """Return tensor inputs and capture generation template options."""
@@ -451,12 +474,21 @@ def test_qwen_generation_reuses_grounded_no_thinking_template() -> None:
             self.options = options
             return torch.tensor([[1, 2, 3, 4]])
 
+        def eval(self) -> RecordingModel:
+            return self
+
     tokenizer = RecordingTokenizer()
     model = RecordingModel()
-    generator = QwenGenerator(Path("unused"), local_files_only=True)
+    generator = QwenGenerator(
+        Path("unused"), local_files_only=True, show_progress=True
+    )
     generator._config = SimpleNamespace(max_position_embeddings=40960)
     generator._tokenizer = tokenizer
-    generator._model = model
+    monkeypatch.setattr(
+        transformers.AutoModelForCausalLM,
+        "from_pretrained",
+        lambda *args, **kwargs: model,
+    )
 
     answer = generator.generate("question text", "evidence text", 8)
 
@@ -477,6 +509,12 @@ def test_qwen_generation_reuses_grounded_no_thinking_template() -> None:
     assert model.options["temperature"] is None
     assert model.options["top_p"] is None
     assert model.options["top_k"] is None
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    progress = captured.err
+    assert progress.index("Loading Qwen model") < progress.index(
+        "Generating answer"
+    )
 
 
 def test_supported_context_rejects_boolean_capacity() -> None:
@@ -507,7 +545,13 @@ def test_answer_cli_searches_once_and_saves_pydantic_wrapper(
     monkeypatch.setattr(
         cli_module, "load_source_texts", lambda path, sources: ["text"]
     )
-    monkeypatch.setattr(cli_module, "QwenGenerator", lambda **kwargs: fake)
+    generator_options: list[dict[str, object]] = []
+
+    def make_generator(**kwargs: object) -> FakeGenerator:
+        generator_options.append(kwargs)
+        return fake
+
+    monkeypatch.setattr(cli_module, "QwenGenerator", make_generator)
     output_path = tmp_path / "answer.json"
 
     displayed = RagCli().answer(
@@ -521,6 +565,13 @@ def test_answer_cli_searches_once_and_saves_pydantic_wrapper(
 
     assert calls == [
         (tmp_path / "index" / "lexical_index.sqlite3", "What?", 1)
+    ]
+    assert generator_options == [
+        {
+            "cache_directory": Path("models/huggingface"),
+            "local_files_only": False,
+            "show_progress": True,
+        }
     ]
     output = StudentSearchResultsAndAnswer.model_validate_json(
         output_path.read_text(encoding="utf-8")

@@ -58,6 +58,8 @@ Issues #12/#24 and PRs #37/#38 are merged.
   647-character source: 265 prompt + 128 reserved = 393 tokens; wall time 26.5680s.
 - Fresh gates: 29 focused tests; `make check` passes with 110 tests; strict mypy,
   Flake8, context validation, `uv sync --locked`, and `git diff --check` pass.
+- The `answer` CLI enables stderr-only tqdm phases for tokenizer/config loading,
+  model loading, and generation; the reusable Qwen adapter remains quiet by default.
 - See `docs/project/10_GROUNDED_ANSWER.md` for contracts and full fresh evidence.
 
 ## Next candidate

@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from tqdm import tqdm
+
 MODEL_ID = "Qwen/Qwen3-0.6B"
 MODEL_REVISION = "c1899de289a04d12100db370d81485cdf75e47ca"
 _SENTINEL_CONTEXT = 10**20
@@ -42,10 +44,12 @@ class QwenGenerator:
         self,
         cache_directory: Path,
         local_files_only: bool = False,
+        show_progress: bool = False,
     ) -> None:
         """Store runtime configuration without loading model assets."""
         self._cache_directory = cache_directory
         self._local_files_only = local_files_only
+        self._show_progress = show_progress
         self._config: Any | None = None
         self._tokenizer: Any | None = None
         self._model: Any | None = None
@@ -88,14 +92,16 @@ class QwenGenerator:
             if self._model is None:
                 torch.set_num_threads(4)
                 model_factory: Any = AutoModelForCausalLM
-                model = model_factory.from_pretrained(
-                    MODEL_ID,
-                    revision=MODEL_REVISION,
-                    cache_dir=self._cache_directory,
-                    local_files_only=self._local_files_only,
-                    trust_remote_code=False,
-                    dtype=torch.float32,
-                )
+                with self._phase("Loading Qwen model") as progress:
+                    model = model_factory.from_pretrained(
+                        MODEL_ID,
+                        revision=MODEL_REVISION,
+                        cache_dir=self._cache_directory,
+                        local_files_only=self._local_files_only,
+                        trust_remote_code=False,
+                        dtype=torch.float32,
+                    )
+                    progress.update()
                 self._model = model.eval()
             assert self._tokenizer is not None
             inputs = self._tokenizer.apply_chat_template(
@@ -111,16 +117,18 @@ class QwenGenerator:
                 raise ValueError(
                     "complete prompt plus answer exceeds supported context"
                 )
-            with torch.inference_mode():
-                output = self._model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=False,
-                    temperature=None,
-                    top_p=None,
-                    top_k=None,
-                    pad_token_id=self._tokenizer.eos_token_id,
-                )
+            with self._phase("Generating answer") as progress:
+                with torch.inference_mode():
+                    output = self._model.generate(
+                        **inputs,
+                        max_new_tokens=max_new_tokens,
+                        do_sample=False,
+                        temperature=None,
+                        top_p=None,
+                        top_k=None,
+                        pad_token_id=self._tokenizer.eos_token_id,
+                    )
+                progress.update()
             answer_ids = output[0, prompt_tokens:]
             return str(
                 self._tokenizer.decode(
@@ -145,14 +153,25 @@ class QwenGenerator:
                 "trust_remote_code": False,
             }
             tokenizer_factory: Any = AutoTokenizer
-            self._config = AutoConfig.from_pretrained(MODEL_ID, **options)
-            self._tokenizer = tokenizer_factory.from_pretrained(
-                MODEL_ID, **options
-            )
+            with self._phase("Loading Qwen tokenizer") as progress:
+                self._config = AutoConfig.from_pretrained(MODEL_ID, **options)
+                self._tokenizer = tokenizer_factory.from_pretrained(
+                    MODEL_ID, **options
+                )
+                progress.update()
         except (OSError, RuntimeError, ValueError) as error:
             raise RuntimeError(
                 f"Could not load Qwen tokenizer: {error}"
             ) from error
+
+    def _phase(self, description: str) -> Any:
+        """Create one opt-in stderr progress phase."""
+        return tqdm(
+            total=1,
+            desc=description,
+            unit="phase",
+            disable=not self._show_progress,
+        )
 
     @staticmethod
     def _messages(question: str, context: str) -> list[dict[str, str]]:
