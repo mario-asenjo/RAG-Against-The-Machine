@@ -478,6 +478,9 @@ def test_qwen_generation_reuses_grounded_no_thinking_template(
 
         def generate(self, **options: Any) -> Any:
             self.options = options
+            options["streamer"].put(torch.tensor([[1, 2, 3]]))
+            options["streamer"].put(torch.tensor([[4]]))
+            options["streamer"].end()
             return torch.tensor([[1, 2, 3, 4]])
 
         def eval(self) -> RecordingModel:
@@ -511,6 +514,7 @@ def test_qwen_generation_reuses_grounded_no_thinking_template(
         "return_tensors": "pt",
     }
     assert model.options["max_new_tokens"] == 8
+    assert "streamer" in model.options
     assert model.options["do_sample"] is False
     assert model.options["temperature"] is None
     assert model.options["top_p"] is None

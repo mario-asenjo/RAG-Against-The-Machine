@@ -40,9 +40,8 @@ M4 — Answer generation.
   Recall@1/3/5/10.
 
 ## Active issue
-[#13 Integrate Qwen/Qwen3-0.6B and grounded answer command](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/13)
-is implemented and locally verified; PR review/manual merge remains required.
-Issues #12/#24 and PRs #37/#38 are merged.
+[#14 Implement answer_dataset output pipeline](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/14)
+is implemented and locally verified. Issue #13 and PR #39 are merged and Done.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -61,14 +60,37 @@ Issues #12/#24 and PRs #37/#38 are merged.
 - The `answer` CLI enables stderr-only tqdm phases for tokenizer/config loading,
   model loading, and generation; the reusable Qwen adapter remains quiet by default.
 - See `docs/project/10_GROUNDED_ANSWER.md` for contracts and full fresh evidence.
+- `answer_dataset` validates prior `StudentSearchResults`, preserves exact `k`, IDs,
+  questions, order, and retrieved sources, and never executes retrieval again.
+- The sequential batch reuses one lazy Qwen instance and one lazily opened SQLite
+  connection; empty-source questions abstain without SQLite or model work.
+- Batch and Qwen progress stays on stderr. The Pydantic output uses the input
+  filename and atomically replaces the destination only after complete success.
+- Fresh #14 checks: 40 focused tests; `make check` passes with 121 tests in 31.68s;
+  strict mypy over 34 files, Flake8, context validation, `uv sync --locked`, and
+  `git diff --check` pass.
+- Fresh public cache-only smoke: two sequential answers in 18.4644s after a
+  5.9469s public-corpus index and 0.6742s retrieval preparation. Exact input/output
+  identity and source lists revalidated; no private data was used.
+- See `docs/project/11_ANSWER_DATASET.md` for contracts, output safety, and evidence.
+- The post-review tqdm follow-up keeps #14 mandatory-only: the dataset bar now owns
+  `position=0, leave=True`, Qwen phases reuse `position=1, leave=False`, and
+  generation progress is streamer-backed generated-token progress on stderr.
 
 ## Next candidate
-After #13 is reviewed and manually merged, implement #14 (`answer_dataset`) as a
-separate iteration/PR. It remains Todo and unstarted. Keep #25 clean-checkout
-rehearsal and #16 private holdout separate.
+PR #40 has the roadmap-review documentation and nested tqdm UX follow-ups applied.
+See `docs/project/12_POST_MANDATORY_ROADMAP.md`.
+
+After #14 review/manual merge, profile `answer_dataset` on a fixed public subset,
+then run #25 clean-checkout rehearsal and #15 mandatory documentation/defense
+readiness. Keep #16 explicitly authorized private holdout separate.
+
+Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.
 - Losing exact source offsets after text normalization/chunking.
 - Correct content with wrong path prefix receiving zero recall credit.
 - Premature embeddings/hybrid complexity delaying mandatory lexical baseline.
+- Using #40 answer speed concerns to shorten answers or reduce `max_new_tokens`
+  instead of profiling first.

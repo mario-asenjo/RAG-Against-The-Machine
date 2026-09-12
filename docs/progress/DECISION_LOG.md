@@ -95,3 +95,35 @@ overflow is a technical budget error. Empty retrieval is the explicit fixed
 abstention and performs no source/model work. Python/Pydantic, never the model,
 owns `StudentSearchResultsAndAnswer` serialization. Single-output writing is kept
 direct; #14 owns atomic batch replacement and shared batch resources.
+
+## D-0011 — Sequential batch reuse and atomic answer output
+**Status:** accepted for #14.
+
+`answer_dataset` consumes validated prior `StudentSearchResults`; it never runs
+retrieval. Process questions in order through `answer_search_result`, preserving
+the exact wrapper `k` and each item's ID, question, order, and retrieved sources.
+Reuse one lazy Qwen adapter and one lazily opened/closed SQLite connection for the
+batch. Empty-source items retain the shared fixed abstention without source or
+model work.
+
+The CLI owns one stderr tqdm batch bar and enables existing Qwen phase bars while
+the reusable generator remains quiet by default. Serialize only the Pydantic
+`StudentSearchResultsAndAnswer` to a closed sibling temporary file, then atomically
+replace `<save_directory>/<input filename>`. Any failure leaves an existing output
+unchanged. No concurrency, retrieval, cache, alternate backend, or new framework.
+
+## D-0012 — Mandatory readiness before bonuses; incremental first
+**Status:** accepted from the post-#40 roadmap review.
+
+Do not use answer speed pressure to reduce `max_new_tokens` or shorten answers.
+Profile `answer_dataset` on a fixed public subset and benchmark CPU thread counts
+before optimizing. Finish #25 clean-checkout rehearsal and #15 documentation /
+defense readiness before any bonus implementation.
+
+Once the mandatory gate is green, implement bonuses in dependency order:
+#19 incremental indexing, #17 semantic retrieval, #18 hybrid retrieval,
+#20 persistent query cache, then #21 local HTTP API. Incremental indexing comes
+first because file manifests, content hashes, transactional partial replacement,
+stale cleanup, and persistent `index_revision` are prerequisites for efficient
+semantic updates and correct persistent cache invalidation. Caching generated
+answers remains out of scope.

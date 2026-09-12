@@ -2,6 +2,45 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-10 — #14 sequential answer_dataset
+- Started from merged #13 / PR #39 at `baea9a4`; protected the unrelated local
+  12048/1280 budget edit in named stash `user-budget-12048-1280-do-not-publish`.
+- RED: all 10 new acceptance cases failed against the placeholder. Implemented one
+  sequential loop over validated prior search results, shared #13 answer flow, one
+  lazy generator, one lazy/shared/closed SQLite connection, stderr tqdm, and atomic
+  Pydantic replacement under the input filename. No retrieval or private data.
+- Focused tests pass 40/40. `uv sync --locked`, `make check` (121 tests in 31.68s),
+  strict mypy over 34 files, Flake8, context validation, and `git diff --check` pass.
+- Public cache-only smoke indexed 1,969 files/17,134 chunks in 5.9469s, prepared two
+  `k=1` searches in 0.6742s, and answered both sequentially in 18.4644s. Output
+  identity/source lists matched input exactly; the weak second source led Qwen to
+  abstain. This is integration evidence, not a quality/private/cache-availability claim.
+- One final Ponytail-full review kept the minimal stdlib design and added only a
+  replacement-failure regression that kills a possible direct-write implementation;
+  the existing production atomic path required no change.
+
+## 2026-09-12 — Post-#40 roadmap triage
+- Read `docs/prompts/RAG_MASTER_ROADMAP_MANDATORY_AND_ALL_BONUSES.md` and recorded
+  the findings in `docs/project/12_POST_MANDATORY_ROADMAP.md`.
+- Current #40 follow-ups are documentation/planning plus the already-identified
+  tqdm UX correction; no bonus code belongs in #40.
+- Accepted next order: profile `answer_dataset`, benchmark CPU threads, #25 clean
+  checkout, #15 defense README, then bonuses #19 -> #17 -> #18 -> #20 -> #21.
+- Recorded that performance work must not reduce `max_new_tokens`, shorten answers,
+  or add StaticCache without a dedicated benchmark. Private #16 remains blocked
+  until explicit authorization.
+
+## 2026-09-12 — #14 nested tqdm follow-up
+- Kept #40 mandatory-only and fixed the progress UX in place: dataset tqdm uses
+  `position=0, leave=True`; Qwen tokenizer/model/generation phases use
+  `position=1, leave=False` during `answer_dataset`.
+- Replaced the one-phase generation tick with a tiny Transformers streamer hook
+  that updates the generation bar by generated tokens while skipping the prompt
+  echo. No answer length, retrieval, cache, concurrency, or backend change.
+- Focused checks: `uv run pytest tests/test_answer_dataset.py tests/test_answer.py -q`
+  passed with 41 tests. Full `make check` passed with 122 tests in 51.01s;
+  strict mypy/Flake8 via `make lint-strict` and `git diff --check` passed.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

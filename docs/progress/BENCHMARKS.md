@@ -10,6 +10,19 @@ gates. Private evaluator performance remains unclaimed.
 | M2-R1 | 8338e96 | SQLite FTS5 BM25, one warm connection per dataset | Existing M2-I1 index | n/a | 16.014 (199 public questions, k=5) | n/a | n/a | 2000 | 100 docs + 99 code questions preserve order; evaluator's private 200-question run remains unclaimed |
 | M2-B1 | c05f1c6 | SQLite FTS5 BM25, one warm connection per dataset | Existing M2-I1 index, max 2000 | n/a | 12.187 (199 public questions, k=10) | 0.870 | 0.606 | 2000 | Both mandatory public recall thresholds pass with ample public timing margin; no ranking change justified |
 
+## Answer generation timing notes
+
+These timings are not retrieval recall benchmarks and do not use private data.
+
+- #14 public cache-only two-question smoke: `answer_dataset` completed in 18.4644s
+  after a 5.9469s public-corpus index and 0.6742s retrieval preparation.
+- Roadmap review baseline for public code dataset: 99 questions, 40:48 total,
+  about 24.73s/question. Observed generation varied roughly 9.84-59.98s/question;
+  tokenizer/model setup was not the dominant repeated cost.
+- Next evidence slice: fixed 10-15 public-question profiling with phase timings and
+  CPU thread counts 4, 8, 10, PyTorch default, and 16. Do not reduce
+  `max_new_tokens` for this performance work.
+
 ## M2-R1 reproduction record
 
 - Date/time: 2026-08-29 13:33:19-13:33:35 +02:00.

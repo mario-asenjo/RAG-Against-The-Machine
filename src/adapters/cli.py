@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
-from typing import NoReturn
+from typing import cast
 
 import fire
+from tqdm import tqdm
 
 from src.application.ports import Chunker
 from src.application.use_cases import (
@@ -28,6 +30,7 @@ from src.infrastructure import (
     QwenGenerator,
     load_corpus,
     load_source_texts,
+    load_source_texts_from_connection,
     save_lexical_index,
     search_lexical_index,
     search_lexical_index_batch,
@@ -43,13 +46,6 @@ class RagCli:
         return (
             "Harness ready. Lexical indexing is implemented; remaining RAG "
             "commands follow the active GitHub issues."
-        )
-
-    @staticmethod
-    def _not_implemented(command: str) -> NoReturn:
-        """Fail gracefully for a command whose implementation is pending."""
-        raise fire.core.FireError(
-            f"'{command}' is not implemented yet. "
         )
 
     def index(
@@ -212,10 +208,75 @@ class RagCli:
         self,
         student_search_results_path: str,
         save_directory: str = "data/output/search_results_and_answer",
-    ) -> NoReturn:
-        """Placeholder for the mandatory dataset answer command."""
-        del student_search_results_path, save_directory
-        self._not_implemented("answer_dataset")
+        index_directory: str = "data/processed",
+        model_cache_directory: str = "models/huggingface",
+        token_budget: int = 2048,
+        max_new_tokens: int = 128,
+        local_files_only: bool = False,
+    ) -> str:
+        """Answer prior results sequentially and replace output atomically."""
+        input_path = Path(student_search_results_path)
+        output_path = Path(save_directory) / input_path.name
+        temporary_path = output_path.with_name(f".{output_path.name}.tmp")
+        connection: sqlite3.Connection | None = None
+        try:
+            student = StudentSearchResults.model_validate_json(
+                input_path.read_text(encoding="utf-8")
+            )
+            generator = QwenGenerator(
+                cache_directory=Path(model_cache_directory),
+                local_files_only=local_files_only,
+                show_progress=True,
+                progress_position=1,
+                progress_leave=False,
+            )
+            answers = []
+            index_path = Path(index_directory) / INDEX_FILENAME
+            for search_result in tqdm(
+                student.search_results,
+                desc="Answering dataset",
+                unit="question",
+                position=0,
+                leave=True,
+            ):
+                if search_result.retrieved_sources and connection is None:
+                    if not index_path.is_file():
+                        raise FileNotFoundError(
+                            f"Lexical index not found: {index_path}"
+                        )
+                    connection = sqlite3.connect(index_path)
+                generation = answer_search_result(
+                    search_result,
+                    lambda sources: load_source_texts_from_connection(
+                        cast(sqlite3.Connection, connection), sources
+                    ),
+                    generator,
+                    token_budget=token_budget,
+                    max_new_tokens=max_new_tokens,
+                )
+                answers.append(generation.answer)
+            output = StudentSearchResultsAndAnswer(
+                search_results=answers,
+                k=student.k,
+            )
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary_path.unlink(missing_ok=True)
+            temporary_path.write_text(
+                output.model_dump_json(indent=2),
+                encoding="utf-8",
+            )
+            temporary_path.replace(output_path)
+        except (OSError, RuntimeError, ValueError, sqlite3.Error) as error:
+            temporary_path.unlink(missing_ok=True)
+            raise fire.core.FireError(str(error)) from error
+        finally:
+            if connection is not None:
+                connection.close()
+
+        return (
+            "Saved student_search_results_and_answer to "
+            f"{output_path.as_posix()}"
+        )
 
     def evaluate(
         self,

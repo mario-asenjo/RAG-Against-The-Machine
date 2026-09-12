@@ -156,33 +156,46 @@ def load_source_texts(
     _require_index(index_path)
     try:
         with closing(sqlite3.connect(index_path)) as connection:
-            texts: list[str] = []
-            for source in sources:
-                rows = connection.execute(
-                    """
-                    SELECT text
-                    FROM chunks
-                    WHERE file_path = ?
-                      AND first_character_index = ?
-                      AND last_character_index = ?
-                    """,
-                    (
-                        source.file_path,
-                        source.first_character_index,
-                        source.last_character_index,
-                    ),
-                ).fetchall()
-                identity = (
-                    f"{source.file_path} "
-                    f"[{source.first_character_index}:"
-                    f"{source.last_character_index}]"
-                )
-                if not rows:
-                    raise ValueError(f"Exact source not found: {identity}")
-                if len(rows) != 1:
-                    raise ValueError(f"Exact source is ambiguous: {identity}")
-                texts.append(str(rows[0][0]))
-            return texts
+            return load_source_texts_from_connection(connection, sources)
+    except sqlite3.Error as error:
+        raise RuntimeError(
+            f"Could not load exact source text: {error}"
+        ) from error
+
+
+def load_source_texts_from_connection(
+    connection: sqlite3.Connection,
+    sources: Sequence[MinimalSource],
+) -> list[str]:
+    """Load exact source tuples through a caller-owned SQLite connection."""
+    try:
+        texts: list[str] = []
+        for source in sources:
+            rows = connection.execute(
+                """
+                SELECT text
+                FROM chunks
+                WHERE file_path = ?
+                  AND first_character_index = ?
+                  AND last_character_index = ?
+                """,
+                (
+                    source.file_path,
+                    source.first_character_index,
+                    source.last_character_index,
+                ),
+            ).fetchall()
+            identity = (
+                f"{source.file_path} "
+                f"[{source.first_character_index}:"
+                f"{source.last_character_index}]"
+            )
+            if not rows:
+                raise ValueError(f"Exact source not found: {identity}")
+            if len(rows) != 1:
+                raise ValueError(f"Exact source is ambiguous: {identity}")
+            texts.append(str(rows[0][0]))
+        return texts
     except sqlite3.Error as error:
         raise RuntimeError(
             f"Could not load exact source text: {error}"
