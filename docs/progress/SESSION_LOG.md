@@ -30,6 +30,17 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   or add StaticCache without a dedicated benchmark. Private #16 remains blocked
   until explicit authorization.
 
+## 2026-09-12 — #14 nested tqdm follow-up
+- Kept #40 mandatory-only and fixed the progress UX in place: dataset tqdm uses
+  `position=0, leave=True`; Qwen tokenizer/model/generation phases use
+  `position=1, leave=False` during `answer_dataset`.
+- Replaced the one-phase generation tick with a tiny Transformers streamer hook
+  that updates the generation bar by generated tokens while skipping the prompt
+  echo. No answer length, retrieval, cache, concurrency, or backend change.
+- Focused checks: `uv run pytest tests/test_answer_dataset.py tests/test_answer.py -q`
+  passed with 41 tests. Full `make check` passed with 122 tests in 51.01s;
+  strict mypy/Flake8 via `make lint-strict` and `git diff --check` passed.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

@@ -227,6 +227,8 @@ class RagCli:
                 cache_directory=Path(model_cache_directory),
                 local_files_only=local_files_only,
                 show_progress=True,
+                progress_position=1,
+                progress_leave=False,
             )
             answers = []
             index_path = Path(index_directory) / INDEX_FILENAME
@@ -234,6 +236,8 @@ class RagCli:
                 student.search_results,
                 desc="Answering dataset",
                 unit="question",
+                position=0,
+                leave=True,
             ):
                 if search_result.retrieved_sources and connection is None:
                     if not index_path.is_file():

@@ -73,11 +73,12 @@ is implemented and locally verified. Issue #13 and PR #39 are merged and Done.
   5.9469s public-corpus index and 0.6742s retrieval preparation. Exact input/output
   identity and source lists revalidated; no private data was used.
 - See `docs/project/11_ANSWER_DATASET.md` for contracts, output safety, and evidence.
+- The post-review tqdm follow-up keeps #14 mandatory-only: the dataset bar now owns
+  `position=0, leave=True`, Qwen phases reuse `position=1, leave=False`, and
+  generation progress is streamer-backed generated-token progress on stderr.
 
 ## Next candidate
-PR #40 still needs the roadmap-review follow-ups recorded from
-`docs/prompts/RAG_MASTER_ROADMAP_MANDATORY_AND_ALL_BONUSES.md`: nested tqdm UX,
-the long-run answer_dataset baseline/profiling plan, and future-roadmap docs.
+PR #40 has the roadmap-review documentation and nested tqdm UX follow-ups applied.
 See `docs/project/12_POST_MANDATORY_ROADMAP.md`.
 
 After #14 review/manual merge, profile `answer_dataset` on a fixed public subset,

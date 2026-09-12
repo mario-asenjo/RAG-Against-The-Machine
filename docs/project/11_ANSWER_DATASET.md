@@ -18,9 +18,12 @@ or retrieval path was added.
 ## Progress and output safety
 
 The CLI enables the existing Qwen tokenizer/model/generation tqdm phases and adds
-one `Answering dataset` bar around the ordered loop. tqdm writes to stderr. The
-command's stdout contains only Fire's final saved-path message, and progress never
-enters the JSON. The reusable Qwen adapter remains silent by default.
+one `Answering dataset` bar around the ordered loop. The dataset bar owns
+`position=0, leave=True`; Qwen loading/generation phases reuse `position=1,
+leave=False`. Generation progress is driven by the Transformers streamer hook and
+counts generated tokens. tqdm writes to stderr. The command's stdout contains only
+Fire's final saved-path message, and progress never enters the JSON. The reusable
+Qwen adapter remains silent by default.
 
 The output path is `<save_directory>/<input filename>`. Python constructs only a
 `StudentSearchResultsAndAnswer` Pydantic model, serializes it to a closed sibling
@@ -51,20 +54,20 @@ uv run pytest tests/test_answer_dataset.py -q
 'answer_dataset' is not implemented yet.
 ```
 
-Final local checks:
+Final local checks after the nested-progress follow-up:
 
 ```text
 uv sync --locked
 Resolved 51 packages; checked 44 packages.
 
 uv run pytest tests/test_answer_dataset.py tests/test_answer.py -q
-40 passed.
+41 passed.
 
 make check
 Context validation passed.
 Flake8 passed.
 Mypy passed over 34 source files.
-121 tests passed in 31.68s.
+122 tests passed in 51.01s.
 
 make lint-strict
 Flake8 passed.
@@ -77,6 +80,7 @@ passed.
 Acceptance coverage pins exact identity/order/source/`k` preservation, no
 retrieval, sequential calls, one generator construction, one closed SQLite
 connection, source-free abstention without SQLite/model work, stderr-only batch
+progress, stable nested tqdm positions, real streamer-backed generated-token
 progress, Pydantic output, predictable naming, atomic replacement, preservation
 of prior bytes after an intermediate model failure, stale sources, and
 traceback-free missing/malformed input, missing index, invalid budget, and missing

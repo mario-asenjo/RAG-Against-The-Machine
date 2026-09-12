@@ -208,6 +208,8 @@ def test_answer_dataset_preserves_contract_and_reuses_batch_resources(
             "cache_directory": Path("models/huggingface"),
             "local_files_only": False,
             "show_progress": True,
+            "progress_position": 1,
+            "progress_leave": False,
         }
     ]
     assert len(connections) == 1
@@ -217,6 +219,59 @@ def test_answer_dataset_preserves_contract_and_reuses_batch_resources(
     assert captured.out == ""
     assert "Answering dataset" in captured.err
     assert output_path.as_posix() in displayed.replace("\\", "/")
+
+
+def test_answer_dataset_uses_stable_nested_progress_positions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dataset progress owns line 0; Qwen phases reuse line 1."""
+    input_path = tmp_path / "empty.json"
+    write_search_results(
+        input_path,
+        [MinimalSearchResults(question="No evidence", retrieved_sources=[])],
+        k=0,
+    )
+    generator_options: list[dict[str, object]] = []
+    tqdm_options: list[dict[str, object]] = []
+
+    def make_generator(**options: object) -> BatchGenerator:
+        generator_options.append(options)
+        return BatchGenerator()
+
+    def fake_tqdm(
+        iterable: Sequence[object],
+        **options: object,
+    ) -> Sequence[object]:
+        tqdm_options.append(options)
+        return iterable
+
+    monkeypatch.setattr(cli_module, "QwenGenerator", make_generator)
+    monkeypatch.setattr(cli_module, "tqdm", fake_tqdm)
+
+    RagCli().answer_dataset(
+        str(input_path),
+        save_directory=str(tmp_path / "answers"),
+        index_directory=str(tmp_path / "missing-index"),
+    )
+
+    assert tqdm_options == [
+        {
+            "desc": "Answering dataset",
+            "unit": "question",
+            "position": 0,
+            "leave": True,
+        }
+    ]
+    assert generator_options == [
+        {
+            "cache_directory": Path("models/huggingface"),
+            "local_files_only": False,
+            "show_progress": True,
+            "progress_position": 1,
+            "progress_leave": False,
+        }
+    ]
 
 
 def test_answer_dataset_empty_sources_abstain_without_index_or_model_work(

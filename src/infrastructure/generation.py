@@ -45,11 +45,15 @@ class QwenGenerator:
         cache_directory: Path,
         local_files_only: bool = False,
         show_progress: bool = False,
+        progress_position: int = 0,
+        progress_leave: bool = True,
     ) -> None:
         """Store runtime configuration without loading model assets."""
         self._cache_directory = cache_directory
         self._local_files_only = local_files_only
         self._show_progress = show_progress
+        self._progress_position = progress_position
+        self._progress_leave = progress_leave
         self._config: Any | None = None
         self._tokenizer: Any | None = None
         self._model: Any | None = None
@@ -117,18 +121,25 @@ class QwenGenerator:
                 raise ValueError(
                     "complete prompt plus answer exceeds supported context"
                 )
-            with self._phase("Generating answer") as progress:
+            with self._phase(
+                "Generating answer",
+                total=max_new_tokens,
+                unit="tok",
+            ) as progress:
                 with torch.inference_mode():
                     output = self._model.generate(
                         **inputs,
                         max_new_tokens=max_new_tokens,
+                        streamer=_ProgressStreamer(
+                            progress,
+                            prompt_tokens,
+                        ),
                         do_sample=False,
                         temperature=None,
                         top_p=None,
                         top_k=None,
                         pad_token_id=self._tokenizer.eos_token_id,
                     )
-                progress.update()
             answer_ids = output[0, prompt_tokens:]
             return str(
                 self._tokenizer.decode(
@@ -164,12 +175,19 @@ class QwenGenerator:
                 f"Could not load Qwen tokenizer: {error}"
             ) from error
 
-    def _phase(self, description: str) -> Any:
+    def _phase(
+        self,
+        description: str,
+        total: int = 1,
+        unit: str = "phase",
+    ) -> Any:
         """Create one opt-in stderr progress phase."""
         return tqdm(
-            total=1,
+            total=total,
             desc=description,
-            unit="phase",
+            unit=unit,
+            position=self._progress_position,
+            leave=self._progress_leave,
             disable=not self._show_progress,
         )
 
@@ -183,3 +201,23 @@ class QwenGenerator:
                 "content": f"Context:\n{context}\n\nQuestion:\n{question}",
             },
         ]
+
+
+class _ProgressStreamer:
+    """Update tqdm from Transformers' generation streamer hook."""
+
+    def __init__(self, progress: Any, prompt_tokens: int) -> None:
+        self._progress = progress
+        self._prompt_tokens_to_skip = prompt_tokens
+
+    def put(self, value: Any) -> None:
+        """Count generated tokens while skipping the prompt echo."""
+        token_count = int(value.numel()) if hasattr(value, "numel") else 1
+        skipped = min(token_count, self._prompt_tokens_to_skip)
+        self._prompt_tokens_to_skip -= skipped
+        generated = token_count - skipped
+        if generated:
+            self._progress.update(generated)
+
+    def end(self) -> None:
+        """Satisfy the Transformers streamer protocol."""
