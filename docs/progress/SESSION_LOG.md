@@ -19,6 +19,17 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   replacement-failure regression that kills a possible direct-write implementation;
   the existing production atomic path required no change.
 
+## 2026-09-12 — Post-#40 roadmap triage
+- Read `docs/prompts/RAG_MASTER_ROADMAP_MANDATORY_AND_ALL_BONUSES.md` and recorded
+  the findings in `docs/project/12_POST_MANDATORY_ROADMAP.md`.
+- Current #40 follow-ups are documentation/planning plus the already-identified
+  tqdm UX correction; no bonus code belongs in #40.
+- Accepted next order: profile `answer_dataset`, benchmark CPU threads, #25 clean
+  checkout, #15 defense README, then bonuses #19 -> #17 -> #18 -> #20 -> #21.
+- Recorded that performance work must not reduce `max_new_tokens`, shorten answers,
+  or add StaticCache without a dedicated benchmark. Private #16 remains blocked
+  until explicit authorization.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

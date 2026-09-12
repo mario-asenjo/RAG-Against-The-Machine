@@ -106,3 +106,7 @@ path sequentially with one lazy Qwen instance and one SQLite connection, preserv
 all input identity/source fields and `k`, and atomically writes the corresponding
 Pydantic wrapper under the input filename. Progress stays on stderr. See
 `docs/project/11_ANSWER_DATASET.md`.
+
+Post-mandatory readiness and bonus sequencing are tracked in
+`docs/project/12_POST_MANDATORY_ROADMAP.md`. Bonuses remain blocked until the
+mandatory clean-checkout and defense-readiness gates are green.

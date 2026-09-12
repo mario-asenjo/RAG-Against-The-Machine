@@ -75,12 +75,21 @@ is implemented and locally verified. Issue #13 and PR #39 are merged and Done.
 - See `docs/project/11_ANSWER_DATASET.md` for contracts, output safety, and evidence.
 
 ## Next candidate
-After #14 review/manual merge, issue #15 is the next mandatory documentation and
-defense-readiness slice. Keep #25 clean-checkout rehearsal and #16 explicitly
-authorized private holdout separate.
+PR #40 still needs the roadmap-review follow-ups recorded from
+`docs/prompts/RAG_MASTER_ROADMAP_MANDATORY_AND_ALL_BONUSES.md`: nested tqdm UX,
+the long-run answer_dataset baseline/profiling plan, and future-roadmap docs.
+See `docs/project/12_POST_MANDATORY_ROADMAP.md`.
+
+After #14 review/manual merge, profile `answer_dataset` on a fixed public subset,
+then run #25 clean-checkout rehearsal and #15 mandatory documentation/defense
+readiness. Keep #16 explicitly authorized private holdout separate.
+
+Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
 ## Main risks
 - Overfitting retrieval to provided private ground truth.
 - Losing exact source offsets after text normalization/chunking.
 - Correct content with wrong path prefix receiving zero recall credit.
 - Premature embeddings/hybrid complexity delaying mandatory lexical baseline.
+- Using #40 answer speed concerns to shorten answers or reduce `max_new_tokens`
+  instead of profiling first.

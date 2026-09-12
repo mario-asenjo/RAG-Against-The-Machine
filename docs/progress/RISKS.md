@@ -10,3 +10,5 @@
 | R6 | LLM stack too heavy/fragile | Answer commands unusable | #24 runtime + #13/#14 exact-context, lazy reuse, abstention, atomic output and public Qwen smokes; provision cache | Two-question cache-only batch passed; broader quality, full-context memory and evaluator cache remain unverified |
 | R7 | GitHub Project token lacks scope | Board drifts from issues | Record limitation; sync later; never pretend success | Open |
 | R8 | Agent implements bonus/speculative architecture early | Scope/defense risk | Mandatory-first roadmap + Ponytail full | Open |
+| R9 | Slow `answer_dataset` prompts answer-shortening or `max_new_tokens` reduction | Lower answer quality and weaker defense | Profile public subset and CPU threads first; keep 128-token default unless measured quality-preserving evidence says otherwise | Open |
+| R10 | Persistent retrieval cache returns stale sources after incremental updates | Wrong exact paths/spans or hidden recall regressions | Implement `index_revision` in #19 before #20; include retriever signature and revision in cache key | Open |

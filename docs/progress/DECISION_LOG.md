@@ -111,3 +111,19 @@ the reusable generator remains quiet by default. Serialize only the Pydantic
 `StudentSearchResultsAndAnswer` to a closed sibling temporary file, then atomically
 replace `<save_directory>/<input filename>`. Any failure leaves an existing output
 unchanged. No concurrency, retrieval, cache, alternate backend, or new framework.
+
+## D-0012 — Mandatory readiness before bonuses; incremental first
+**Status:** accepted from the post-#40 roadmap review.
+
+Do not use answer speed pressure to reduce `max_new_tokens` or shorten answers.
+Profile `answer_dataset` on a fixed public subset and benchmark CPU thread counts
+before optimizing. Finish #25 clean-checkout rehearsal and #15 documentation /
+defense readiness before any bonus implementation.
+
+Once the mandatory gate is green, implement bonuses in dependency order:
+#19 incremental indexing, #17 semantic retrieval, #18 hybrid retrieval,
+#20 persistent query cache, then #21 local HTTP API. Incremental indexing comes
+first because file manifests, content hashes, transactional partial replacement,
+stale cleanup, and persistent `index_revision` are prerequisites for efficient
+semantic updates and correct persistent cache invalidation. Caching generated
+answers remains out of scope.
