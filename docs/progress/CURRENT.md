@@ -1,7 +1,7 @@
 # Current project state
 
 ## Milestone
-M4 — Answer generation.
+M5 — Mandatory readiness.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -40,8 +40,8 @@ M4 — Answer generation.
   Recall@1/3/5/10.
 
 ## Active issue
-[#14 Implement answer_dataset output pipeline](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/14)
-is implemented and locally verified. Issue #13 and PR #39 are merged and Done.
+[#41 Profile public answer_dataset runtime and CPU threads](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/41)
+is active after #14 / PR #40 merged.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -76,14 +76,17 @@ is implemented and locally verified. Issue #13 and PR #39 are merged and Done.
 - The post-review tqdm follow-up keeps #14 mandatory-only: the dataset bar now owns
   `position=0, leave=True`, Qwen phases reuse `position=1, leave=False`, and
   generation progress is streamer-backed generated-token progress on stderr.
+- Public #41 profiling on 10 sourced code questions shows generation dominates
+  wall time at 91-97%; source hydration and prompt fitting are not current
+  bottlenecks. Explicit 10 CPU threads was fastest on this host at 316.973s
+  total / 31.697s per question, about 14.5% faster than the current hard-coded
+  4-thread production setting. See `docs/project/13_ANSWER_DATASET_PROFILING.md`.
 
 ## Next candidate
-PR #40 has the roadmap-review documentation and nested tqdm UX follow-ups applied.
-See `docs/project/12_POST_MANDATORY_ROADMAP.md`.
-
-After #14 review/manual merge, profile `answer_dataset` on a fixed public subset,
-then run #25 clean-checkout rehearsal and #15 mandatory documentation/defense
-readiness. Keep #16 explicitly authorized private holdout separate.
+After #41, choose whether to make CPU thread count configurable or keep the
+current implementation unchanged for #25. Then run #25 clean-checkout rehearsal
+and #15 mandatory documentation/defense readiness. Keep #16 explicitly authorized
+private holdout separate.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

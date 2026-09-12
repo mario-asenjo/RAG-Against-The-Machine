@@ -41,6 +41,21 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   passed with 41 tests. Full `make check` passed with 122 tests in 51.01s;
   strict mypy/Flake8 via `make lint-strict` and `git diff --check` passed.
 
+## 2026-09-12 — #41 public answer_dataset profiling
+- Created #41, added it to Project #12, and moved it to In Progress after #40
+  merged into main at `96aeee8`.
+- Added `scripts/profile_answer_dataset.py`, a public-data profiler over the
+  existing answer use case, exact SQLite loader, and Qwen adapter. It records
+  source hydration, supported-context lookup, prompt fitting/tokenization,
+  generation, prompt/generated tokens, and source counts.
+- Ran 10 public code questions for thread settings 4, 8, 10, PyTorch default, and
+  16 with `max_new_tokens=128`. Raw JSON lives under ignored
+  `data/output/profiling/issue41/`.
+- Best total time on this host was explicit 10 threads: 316.973s total / 31.697s
+  per question. Current production 4-thread setting took 370.853s. Generation
+  dominated every run at 91-97%; source hydration and prompt fitting were small.
+  No private data, answer shortening, cache, retrieval change, or concurrency.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

@@ -23,6 +23,29 @@ These timings are not retrieval recall benchmarks and do not use private data.
   CPU thread counts 4, 8, 10, PyTorch default, and 16. Do not reduce
   `max_new_tokens` for this performance work.
 
+## M5-A1 answer_dataset CPU-thread profiling
+
+- Date: 2026-09-12.
+- Branch: `perf/issue-41-answer-dataset-profile`.
+- Input: first 10 public code search results with non-empty sources from
+  `data/output/search_results/UnansweredQuestions/dataset_code_public.json`.
+- Model/cache: Qwen/Qwen3-0.6B local cache only, `token_budget=2048`,
+  `max_new_tokens=128`; no private data.
+- Script: `uv run python scripts/profile_answer_dataset.py ... --limit 10`.
+
+| Threads | Effective | Total s | Avg s/q | Generation s | Gen share | Fit/tokenize s | Hydrate s | Generated tokens |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4 | 4 | 370.853 | 37.085 | 357.619 | 0.964 | 0.223 | 5.182 | 398 |
+| 8 | 8 | 379.500 | 37.950 | 345.370 | 0.910 | 0.220 | 4.679 | 398 |
+| 10 | 10 | 316.973 | 31.697 | 305.794 | 0.965 | 0.204 | 4.410 | 398 |
+| default | 10 | 331.957 | 33.196 | 320.679 | 0.966 | 0.199 | 4.710 | 398 |
+| 16 | 16 | 320.808 | 32.081 | 293.393 | 0.914 | 0.198 | 4.558 | 398 |
+
+Conclusion: generation dominates. Do not optimize retrieval/source hydration,
+prompt fitting, caching, or answer length from this evidence. The smallest useful
+runtime candidate is removing or parameterizing the hard-coded 4-thread setting;
+10 threads was fastest on this host, while PyTorch default also resolved to 10.
+
 ## M2-R1 reproduction record
 
 - Date/time: 2026-08-29 13:33:19-13:33:35 +02:00.
