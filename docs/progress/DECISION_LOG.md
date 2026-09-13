@@ -127,3 +127,13 @@ first because file manifests, content hashes, transactional partial replacement,
 stale cleanup, and persistent `index_revision` are prerequisites for efficient
 semantic updates and correct persistent cache invalidation. Caching generated
 answers remains out of scope.
+
+## D-0013 — Authorized private holdout is consumed once
+**Status:** accepted for #16 during #25.
+
+Mario explicitly authorized one blind private retrieval rehearsal. Record only
+aggregate timing, Recall, and pass/fail; do not inspect or publish private answered
+JSON, source spans, answers, or question-level results. The run passed Docs
+Recall@5 at 0.800 and Code Recall@5 at 0.510. Its WSL/v9fs retrieval timing was
+invalid/inconclusive, but the private-label evaluation must not be repeated or used
+for tuning. Measure only unlabeled/native campus runtime from this point forward.
