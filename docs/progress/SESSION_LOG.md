@@ -87,6 +87,23 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   flattened question directories. Data-layout docs and the campus runner now use
   that exact path; #43 still owns the bootstrap implementation.
 
+## 2026-09-13 — Campus evaluation evidence and #45 plan
+- Reviewed all 12 local `evaluations/` artifacts without committing generated
+  data: two DOCX transcripts, the campus log, edge summary, and eight edge logs.
+- On native campus Ubuntu over `/sgoinfre` NFS4 at merged `e367ecb`, indexing
+  passed in 10s and private Recall@5 passed at Docs 0.800 / Code 0.510. Retrieval
+  took 46s + 46s = 92s, failing the <=90s gate by 2s.
+- Edge artifacts confirm 4/4 real traceback-free outcomes. The answer transcript
+  reports 88/100 valid docs questions and three generated answers, but contains
+  no final human pass/fail judgment; no formal answer-quality pass is claimed.
+- The campus runner's post-check uv steps failed because the NFS working directory
+  became unstatable; manual evaluator commands succeeded afterward. Plan: re-enter
+  `$ROOT` per runner step rather than masking command failures.
+- Created #45 for mandatory uncached retrieval profiling. Persistent query cache
+  remains a bonus and cannot help 200 distinct first-seen evaluator questions.
+  Compare SQLite/NFS options one at a time and require unchanged outputs plus
+  three campus runs <=80s before retaining a production optimization.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

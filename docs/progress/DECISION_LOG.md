@@ -128,12 +128,26 @@ stale cleanup, and persistent `index_revision` are prerequisites for efficient
 semantic updates and correct persistent cache invalidation. Caching generated
 answers remains out of scope.
 
-## D-0013 — Authorized private holdout is consumed once
+## D-0013 — Authorized private holdout is evidence, never a tuning source
 **Status:** accepted for #16 during #25.
 
-Mario explicitly authorized one blind private retrieval rehearsal. Record only
+Mario explicitly authorized a blind private retrieval rehearsal. Record only
 aggregate timing, Recall, and pass/fail; do not inspect or publish private answered
-JSON, source spans, answers, or question-level results. The run passed Docs
-Recall@5 at 0.800 and Code Recall@5 at 0.510. Its WSL/v9fs retrieval timing was
-invalid/inconclusive, but the private-label evaluation must not be repeated or used
-for tuning. Measure only unlabeled/native campus runtime from this point forward.
+JSON or ground-truth source spans. The initial WSL run passed Docs Recall@5 at
+0.800 and Code Recall@5 at 0.510 but had invalid timing. Mario later ran the
+unchanged frozen configuration through the supplied correction script on campus,
+reproducing the same aggregate Recall while measuring 92s retrieval. No parameter
+change occurred between runs and private labels must not be used for tuning or
+evaluated again; subsequent #45 work uses public or unanswered inputs only.
+
+## D-0014 — Mandatory uncached retrieval before bonus cache
+**Status:** accepted after campus evidence for #25; implementation remains #45.
+
+Campus retrieval took 92s for 200 distinct questions, failing the mandatory 90s
+gate by 2s while Recall remained passing. Do not use #20's persistent repeated-query
+cache as the remedy: the evaluator executes distinct queries in two fresh CLI
+processes, so useful cache hits are not expected. Profile the existing SQLite/NFS
+path first and compare one change at a time. Keep only an output-identical option
+that reaches <=80s across three campus runs; preserve BM25 ranking, exact spans,
+and public Recall. Cache, concurrency, semantic retrieval, and ranking changes
+remain out of scope until the mandatory gate is green.

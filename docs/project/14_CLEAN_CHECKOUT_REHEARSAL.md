@@ -166,7 +166,7 @@ It records environment/filesystem/CPU information, clean dependency and quality
 gates, index time, separate private-unanswered docs/code retrieval times, edge
 behavior, one public sourced answer, a two-question public `answer_dataset`, and
 batch identity validation. It never opens private answered labels or invokes
-Moulinette, so it does not repeat the consumed private-label evaluation.
+Moulinette; evaluator-label execution remains a separate manual action.
 
 If the model is already cached and campus network access should be forbidden:
 
@@ -178,3 +178,67 @@ bash scripts/campus_test.sh \
 
 Use `--skip-generation` when only retrieval timing is needed. After completion,
 paste the entire file printed as `CAMPUS_TEST_LOG=...` into the Hermes session.
+
+## Campus evidence — 2026-09-13
+
+Mario ran merged commit `e367ecb` on `c2r13s5.42madrid.com`: native Ubuntu,
+Intel Core i5-8500 (6 cores / 6 threads), 7.6 GiB RAM, with the checkout on the
+campus `/sgoinfre` NFS4 mount.
+
+The automatic runner captured environment and `make check` evidence, then its
+subsequent uv steps failed with `cannot stat path of the current working
+directory: Permission denied`. This is a runner/environment handoff problem, not
+a demonstrated RAG command failure: the same checkout then ran the supplied exam
+commands manually. Before another use, the runner should re-enter `$ROOT` for each
+step and fail early if the working directory cannot be resolved.
+
+The manual retrieval exam produced:
+
+| Gate | Campus result |
+|---|---:|
+| Indexing | PASS, 10s <= 300s |
+| Docs search | 46s / 100 questions |
+| Code search | 46s / 100 questions |
+| Combined warm retrieval | FAIL, 92s > 90s |
+| Docs Recall@5 | PASS, 0.800 >= 0.80 |
+| Code Recall@5 | PASS, 0.510 >= 0.50 |
+| Script summary | 3/4 |
+
+The miss is 2 seconds, or 2.22% above the hard limit, and leaves no safety
+margin. The implementation therefore needs a measured mandatory retrieval
+improvement rather than an evaluator-specific exception.
+
+This was a second user-run evaluator observation at the same frozen configuration
+after the WSL timing failure; no retrieval parameter changed between runs. Treat
+the repeated aggregate Recall as confirmation only, never as a tuning signal, and
+do not execute private-label evaluation again.
+
+The supplied edge cases genuinely passed 4/4: the captured files show the
+expected Fire errors for empty query and missing dataset, an empty successful
+gibberish search, and a successful `k=0` abstention without tracebacks.
+
+The answer exam found 88/100 private docs questions with all expected sources at
+`k=10`. Three manually selected answers were generated. Two directly addressed
+their package/installation questions with relevant retrieved documentation; the
+third returned only `/run` for an endpoint-URL-format question and may be judged
+incomplete. The log contains no final corrector yes/no response, so no formal 2/3
+pass is claimed.
+
+All 12 supplied evaluation artifacts were reviewed: two DOCX transcripts, one
+campus runner log, one edge summary, and eight edge stdout/stderr logs. Generated
+evaluation files remain ignored and are not committed.
+
+## Retrieval strategy after campus evidence
+
+Bonus query caching is not the fix for this mandatory gate. The evaluator sends
+200 distinct questions across two fresh CLI processes, so a repeated-query cache
+should have no useful hits. Mandatory uncached retrieval must pass first; #20
+remains a later bonus.
+
+Issue #45 owns an evidence-first NFS investigation. Measure startup, validation,
+SQLite open/first query, repeated FTS5 execution, and serialization separately on
+fixed public inputs. Compare one variable at a time: current behavior, read-only
+immutable SQLite access, individual page-cache/mmap/temp-store settings, and one
+diagnostic local-index copy to confirm or reject NFS as the bottleneck. Preserve
+ranking and Recall exactly. Target <=80s across three campus runs before keeping
+any production change.

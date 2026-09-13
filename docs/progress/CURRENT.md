@@ -95,11 +95,19 @@ is active after #41 / PR #42 merged.
 - `scripts/campus_test.sh` now provides the pending native-campus measurement in
   one command and captures complete stdout/stderr to one ignored log without
   opening private labels or rerunning Moulinette.
+- Campus evidence at merged `e367ecb`: indexing passed in 10s and both private
+  Recall@5 gates passed (Docs 0.800, Code 0.510), but warm retrieval took
+  46s docs + 46s code = 92s and failed the mandatory <=90s gate. The 2s miss is
+  small but has no safety margin. Issue #45 tracks measured uncached optimization.
+- The campus runner passed `make check` but later uv steps hit a transient NFS
+  working-directory permission error. Manual evaluator commands then ran; edge
+  cases passed 4/4 and answer generation produced three grounded outputs.
 
 ## Next candidate
-Fix the narrow #43 bootstrap defect, then record campus-native retrieval and Qwen
-timings without rerunning private-label evaluation. After #25 is green, finish #15
-mandatory documentation/defense readiness.
+Fix the narrow #43 bootstrap defect, then execute #45 to bring uncached campus
+retrieval to a stable <=80s without changing ranking/Recall. Harden the campus
+runner's per-step working-directory reset inside #25. After #25 is green, finish
+#15 mandatory documentation/defense readiness.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
