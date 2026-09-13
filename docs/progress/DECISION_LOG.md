@@ -147,7 +147,9 @@ Campus retrieval took 92s for 200 distinct questions, failing the mandatory 90s
 gate by 2s while Recall remained passing. Do not use #20's persistent repeated-query
 cache as the remedy: the evaluator executes distinct queries in two fresh CLI
 processes, so useful cache hits are not expected. Profile the existing SQLite/NFS
-path first and compare one change at a time. Keep only an output-identical option
-that reaches <=80s across three campus runs; preserve BM25 ranking, exact spans,
-and public Recall. Cache, concurrency, semantic retrieval, and ranking changes
-remain out of scope until the mandatory gate is green.
+path first and compare one change at a time. Perform optimization on repeatable
+local public runs, retaining only an output-identical option with a stable >=15%
+gain across at least three runs. Use at most one later campus confirmation on
+unanswered inputs; preserve BM25 ranking, exact spans, and public Recall. Cache,
+concurrency, semantic retrieval, and ranking changes remain out of scope until the
+mandatory gate is green.

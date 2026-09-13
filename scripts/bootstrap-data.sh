@@ -43,17 +43,27 @@ rm -rf "$ROOT/data/raw/vllm-0.10.1"
 cp -R "$VLLM_DIR" "$ROOT/data/raw/vllm-0.10.1"
 
 unzip -q "$PUBLIC" -d "$TMP/public"
-PUB_ROOT="$(find "$TMP/public" -type d -path '*/public' | head -1)"
-[[ -n "$PUB_ROOT" ]] || { echo "Could not find public/ dataset root" >&2; exit 1; }
+PUB_ROOT="$TMP/public/datasets_public"
+[[ -d "$PUB_ROOT/public/AnsweredQuestions" ]] || {
+  echo "Could not find public AnsweredQuestions" >&2; exit 1;
+}
+[[ -d "$PUB_ROOT/public/UnansweredQuestions" ]] || {
+  echo "Could not find public UnansweredQuestions" >&2; exit 1;
+}
+rm -rf "$ROOT/data/datasets/datasets_public"
 rm -rf "$ROOT/data/datasets/AnsweredQuestions" "$ROOT/data/datasets/UnansweredQuestions"
-cp -R "$PUB_ROOT/AnsweredQuestions" "$ROOT/data/datasets/AnsweredQuestions"
-cp -R "$PUB_ROOT/UnansweredQuestions" "$ROOT/data/datasets/UnansweredQuestions"
+cp -R "$PUB_ROOT" "$ROOT/data/datasets/datasets_public"
 
 if [[ -n "$PRIVATE" ]]; then
   [[ -f "$PRIVATE" ]] || { echo "Private archive not found: $PRIVATE" >&2; exit 2; }
   unzip -q "$PRIVATE" -d "$TMP/private"
-  PRIV_ROOT="$(find "$TMP/private" -type d -path '*/private' | head -1)"
-  [[ -n "$PRIV_ROOT" ]] || { echo "Could not find private/ dataset root" >&2; exit 1; }
+  PRIV_ROOT="$TMP/private/private"
+  [[ -d "$PRIV_ROOT/AnsweredQuestions" ]] || {
+    echo "Could not find private AnsweredQuestions" >&2; exit 1;
+  }
+  [[ -d "$PRIV_ROOT/UnansweredQuestions" ]] || {
+    echo "Could not find private UnansweredQuestions" >&2; exit 1;
+  }
   rm -rf "$ROOT/data/datasets/private"
   cp -R "$PRIV_ROOT" "$ROOT/data/datasets/private"
   echo "Private holdout staged at data/datasets/private/. Do not tune against its answered labels."
@@ -62,7 +72,7 @@ fi
 cat <<TXT
 Staged:
   data/raw/vllm-0.10.1/
-  data/datasets/AnsweredQuestions/
-  data/datasets/UnansweredQuestions/
+  data/datasets/datasets_public/public/
+  data/datasets/private/ (when --private is provided)
 These paths are gitignored.
 TXT

@@ -235,10 +235,11 @@ Bonus query caching is not the fix for this mandatory gate. The evaluator sends
 should have no useful hits. Mandatory uncached retrieval must pass first; #20
 remains a later bonus.
 
-Issue #45 owns an evidence-first NFS investigation. Measure startup, validation,
-SQLite open/first query, repeated FTS5 execution, and serialization separately on
-fixed public inputs. Compare one variable at a time: current behavior, read-only
-immutable SQLite access, individual page-cache/mmap/temp-store settings, and one
-diagnostic local-index copy to confirm or reject NFS as the bottleneck. Preserve
-ranking and Recall exactly. Target <=80s across three campus runs before keeping
-any production change.
+Issue #45 owns evidence-first retrieval optimization performed locally first.
+Measure startup, validation, SQLite open/first query, repeated FTS5 execution, and
+serialization separately on fixed public inputs with the evaluator's `k=10` and
+two-process shape. Compare one variable at a time: current behavior, read-only
+immutable SQLite access, and individual page-cache/mmap/temp-store settings.
+Preserve ranking and Recall exactly. Keep a candidate only after at least three
+local runs show a stable material improvement, targeting >=15%. After merge, use
+at most one campus confirmation on unanswered inputs rather than iterating there.

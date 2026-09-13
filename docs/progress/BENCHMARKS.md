@@ -26,9 +26,10 @@ private native-Linux retrieval timing remains unclaimed.
 - The user-run campus evaluator reproduced Docs Recall@5 0.800 and Code Recall@5
   0.510 at the same frozen configuration. No parameter changed between the WSL
   and campus runs; no further private-label evaluation or tuning is authorized.
-- Conclusion: seek a stable <=80s campus result with unchanged outputs. Query
-  caching is not applicable because the mandatory workload contains distinct
-  questions in fresh processes.
+- Conclusion: optimize against repeatable local public runs first, requiring a
+  stable >=15% improvement with unchanged outputs. Use at most one later campus
+  confirmation. Query caching is not applicable because the mandatory workload
+  contains distinct questions in fresh processes.
 
 ## Answer generation timing notes
 
