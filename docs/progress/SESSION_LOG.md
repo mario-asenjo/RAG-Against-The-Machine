@@ -74,6 +74,14 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   artifacts stayed ignored and the injected `exams/` tree remained unstaged.
 - Final post-documentation gates passed: context, Flake8, normal/strict mypy and
   122 tests. Pytest took 909.48s on v9fs, so no timing claim is derived from it.
+- Added `scripts/campus_test.sh` to PR #44 for the pending native-Linux follow-up.
+  It times setup/check/index/private-unanswered retrieval/public Qwen smokes, saves
+  all stdout/stderr with `tee`, validates public batch identity, and prints the
+  exact log path to paste back. It never evaluates private labels.
+- Script checks passed: `bash -n`, `--help`, a stubbed complete success, and a
+  forced-step-failure run proving later steps continue, the log remains complete,
+  and the final exit/status reports failure. Final `make check` passed 122 tests;
+  strict mypy, Flake8, context validation, and `git diff --check` passed.
 
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and

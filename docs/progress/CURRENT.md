@@ -91,6 +91,9 @@ is active after #41 / PR #42 merged.
   the script's docs duration invalid and mounted-v9fs code retrieval took 115s.
 - Clean archive staging exposed #43: `bootstrap-data.sh` selects its own
   `<tmp>/public` staging directory instead of `datasets_public/public`.
+- `scripts/campus_test.sh` now provides the pending native-campus measurement in
+  one command and captures complete stdout/stderr to one ignored log without
+  opening private labels or rerunning Moulinette.
 
 ## Next candidate
 Fix the narrow #43 bootstrap defect, then record campus-native retrieval and Qwen

@@ -143,3 +143,35 @@ fully green bonus-unlock gate yet because:
 3. campus-native timing and model-cache provisioning still need documentation.
 
 No production code change is justified by this rehearsal.
+
+## Campus-native follow-up
+
+Run from the repository root on a native campus Linux filesystem after staging
+the corpus plus public and private datasets:
+
+```text
+bash scripts/campus_test.sh
+```
+
+The script captures its complete stdout and stderr with `tee` under:
+
+```text
+evaluations/campus/<timestamp>/campus_test.log
+```
+
+It records environment/filesystem/CPU information, clean dependency and quality
+gates, index time, separate private-unanswered docs/code retrieval times, edge
+behavior, one public sourced answer, a two-question public `answer_dataset`, and
+batch identity validation. It never opens private answered labels or invokes
+Moulinette, so it does not repeat the consumed private-label evaluation.
+
+If the model is already cached and campus network access should be forbidden:
+
+```text
+bash scripts/campus_test.sh \
+  --model-cache-directory models/huggingface \
+  --local-files-only True
+```
+
+Use `--skip-generation` when only retrieval timing is needed. After completion,
+paste the entire file printed as `CAMPUS_TEST_LOG=...` into the Hermes session.
