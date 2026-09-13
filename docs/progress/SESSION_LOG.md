@@ -56,6 +56,37 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   dominated every run at 91-97%; source hydration and prompt fitting were small.
   No private data, answer shortening, cache, retrieval change, or concurrency.
 
+## 2026-09-13 — #25 clean checkout and authorized #16 holdout
+- Created a disposable worktree at merged `7cd34f8`, staged the supplied corpus,
+  public/private datasets, exams and Moulinette, then ran under WSL/v9fs.
+- `bootstrap-data.sh` failed because public-root discovery selected its own staging
+  directory; filed #43 and used an equivalent manual archive staging workaround.
+- Fresh WSL `.venv`: `uv sync --locked` installed 44 packages; `make check` passed
+  122 tests. The supplied edge exam passed 4/4. Public search/search_dataset /
+  evaluate/answer/answer_dataset smokes and Pydantic identity checks passed.
+- Mario explicitly authorized one blind private retrieval run. Indexing passed in
+  55s; aggregate Docs Recall@5 was 0.800 PASS and Code Recall@5 was 0.510 PASS.
+  No private answered file or question-level result was inspected or copied.
+- The script's docs timing crossed a WSL clock discontinuity and was invalid; code
+  search reported 115s on mounted v9fs. The private timing gate remains unclaimed
+  and the blind evaluation will not be rerun. Campus-native timing remains.
+- No production code changed. Tracked status stayed clean; generated/evaluator
+  artifacts stayed ignored and the injected `exams/` tree remained unstaged.
+- Final post-documentation gates passed: context, Flake8, normal/strict mypy and
+  122 tests. Pytest took 909.48s on v9fs, so no timing claim is derived from it.
+- Added `scripts/campus_test.sh` to PR #44 for the pending native-Linux follow-up.
+  It times setup/check/index/private-unanswered retrieval/public Qwen smokes, saves
+  all stdout/stderr with `tee`, validates public batch identity, and prints the
+  exact log path to paste back. It never evaluates private labels.
+- Script checks passed: `bash -n`, `--help`, a stubbed complete success, and a
+  forced-step-failure run proving later steps continue, the log remains complete,
+  and the final exit/status reports failure. Final `make check` passed 122 tests;
+  strict mypy, Flake8, context validation, and `git diff --check` passed.
+- Corrected #43's target after Mario clarified that public archive nesting is
+  required: bootstrap must produce `data/datasets/datasets_public/public/`, not
+  flattened question directories. Data-layout docs and the campus runner now use
+  that exact path; #43 still owns the bootstrap implementation.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

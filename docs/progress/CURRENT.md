@@ -40,8 +40,8 @@ M5 — Mandatory readiness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#41 Profile public answer_dataset runtime and CPU threads](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/41)
-is active after #14 / PR #40 merged.
+[#25 Rehearse complete mandatory CLI from a clean checkout](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/25)
+is active after #41 / PR #42 merged.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -81,12 +81,25 @@ is active after #14 / PR #40 merged.
   bottlenecks. Explicit 10 CPU threads was fastest on this host at 316.973s
   total / 31.697s per question, about 14.5% faster than the current hard-coded
   4-thread production setting. See `docs/project/13_ANSWER_DATASET_PROFILING.md`.
+- A disposable clean checkout at `7cd34f8` passed fresh `uv sync --locked`,
+  `make check` with 122 tests, all four supplied edge cases, and public smokes for
+  every mandatory command. Exact Pydantic answer outputs and batch identity were
+  revalidated. See `docs/project/14_CLEAN_CHECKOUT_REHEARSAL.md`.
+- Mario explicitly authorized one blind private retrieval rehearsal. Indexing
+  passed in 55s; private Docs Recall@5 passed at 0.800 and Code Recall@5 passed at
+  0.510. The warm timing gate is unclaimed because a WSL clock discontinuity made
+  the script's docs duration invalid and mounted-v9fs code retrieval took 115s.
+- Clean archive staging exposed #43: `bootstrap-data.sh` selects its own
+  `<tmp>/public` staging directory instead of `datasets_public/public`; its fix
+  must preserve the latter under `data/datasets/datasets_public/public/`.
+- `scripts/campus_test.sh` now provides the pending native-campus measurement in
+  one command and captures complete stdout/stderr to one ignored log without
+  opening private labels or rerunning Moulinette.
 
 ## Next candidate
-After #41, choose whether to make CPU thread count configurable or keep the
-current implementation unchanged for #25. Then run #25 clean-checkout rehearsal
-and #15 mandatory documentation/defense readiness. Keep #16 explicitly authorized
-private holdout separate.
+Fix the narrow #43 bootstrap defect, then record campus-native retrieval and Qwen
+timings without rerunning private-label evaluation. After #25 is green, finish #15
+mandatory documentation/defense readiness.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
