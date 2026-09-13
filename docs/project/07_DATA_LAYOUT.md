@@ -8,8 +8,10 @@ data/
 │   └── vllm-0.10.1/
 ├── processed/
 ├── datasets/
-│   ├── UnansweredQuestions/
-│   ├── AnsweredQuestions/
+│   ├── datasets_public/
+│   │   └── public/
+│   │       ├── UnansweredQuestions/
+│   │       └── AnsweredQuestions/
 │   └── private/                  # evaluator/holdout when present
 └── output/
     ├── search_results/
@@ -20,6 +22,9 @@ data/
         └── AnsweredQuestions/
 ```
 
-The provided public zip has an extra packaging prefix (`datasets_public/public/...`), so bootstrap tooling must place its inner `public/{AnsweredQuestions,UnansweredQuestions}` contents at the subject-compatible `data/datasets/{AnsweredQuestions,UnansweredQuestions}` locations.
+The provided public zip layout is canonical for local development. Bootstrap
+tooling must preserve it under
+`data/datasets/datasets_public/public/{AnsweredQuestions,UnansweredQuestions}`;
+it must not flatten the two question directories directly under `data/datasets/`.
 
 All of `data/` is gitignored by this scaffold because the subject says not to submit large data/generated outputs. The implementation must create required runtime directories as needed.

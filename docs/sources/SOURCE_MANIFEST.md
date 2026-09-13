@@ -20,7 +20,8 @@ submission content and must not be committed.
 - Public code: 99 questions.
 - Private docs: 100 questions.
 - Private code: 100 questions.
-- Public archive is packaged under `datasets_public/public/...`; `scripts/bootstrap-data.sh` flattens this to the subject-compatible `data/datasets/...` layout.
+- Public archive is packaged under `datasets_public/public/...`; bootstrap tooling
+  must preserve it at `data/datasets/datasets_public/public/...`.
 
 ## Source protection
 Do not edit supplied data/corpus to improve scores. Any derived fixtures belong under `tests/fixtures/` and should state provenance/assumptions.

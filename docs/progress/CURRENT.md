@@ -90,7 +90,8 @@ is active after #41 / PR #42 merged.
   0.510. The warm timing gate is unclaimed because a WSL clock discontinuity made
   the script's docs duration invalid and mounted-v9fs code retrieval took 115s.
 - Clean archive staging exposed #43: `bootstrap-data.sh` selects its own
-  `<tmp>/public` staging directory instead of `datasets_public/public`.
+  `<tmp>/public` staging directory instead of `datasets_public/public`; its fix
+  must preserve the latter under `data/datasets/datasets_public/public/`.
 - `scripts/campus_test.sh` now provides the pending native-campus measurement in
   one command and captures complete stdout/stderr to one ignored log without
   opening private labels or rerunning Moulinette.

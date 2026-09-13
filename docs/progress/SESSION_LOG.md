@@ -82,6 +82,10 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   forced-step-failure run proving later steps continue, the log remains complete,
   and the final exit/status reports failure. Final `make check` passed 122 tests;
   strict mypy, Flake8, context validation, and `git diff --check` passed.
+- Corrected #43's target after Mario clarified that public archive nesting is
+  required: bootstrap must produce `data/datasets/datasets_public/public/`, not
+  flattened question directories. Data-layout docs and the campus runner now use
+  that exact path; #43 still owns the bootstrap implementation.
 
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and

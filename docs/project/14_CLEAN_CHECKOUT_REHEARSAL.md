@@ -36,9 +36,11 @@ cp: cannot stat '<tmp>/public/AnsweredQuestions': No such file or directory
 
 The staging directory itself is named `<tmp>/public`, so its `find ... -path
 '*/public'` selects that directory instead of the archive's
-`datasets_public/public` directory. Issue #43 tracks the minimal fix. For this
-rehearsal, the same archives were staged manually into the documented paths;
-no source or dataset content was changed.
+`datasets_public/public` directory. Issue #43 tracks both selecting the real
+archive root and preserving it at
+`data/datasets/datasets_public/public/{AnsweredQuestions,UnansweredQuestions}`.
+For this rehearsal, the same archives were staged manually without changing any
+source or dataset content.
 
 A fresh WSL `.venv` then completed `uv sync --locked`. Installing 44 packages
 onto the mounted filesystem took 6m58s because uv could not hardlink from its
@@ -147,7 +149,8 @@ No production code change is justified by this rehearsal.
 ## Campus-native follow-up
 
 Run from the repository root on a native campus Linux filesystem after staging
-the corpus plus public and private datasets:
+the corpus plus public and private datasets. The public datasets must be under
+`data/datasets/datasets_public/public/`:
 
 ```text
 bash scripts/campus_test.sh

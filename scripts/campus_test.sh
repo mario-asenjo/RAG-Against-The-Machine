@@ -105,7 +105,8 @@ require_directory "data/raw/vllm-0.10.1"
 require_file "data/datasets/private/UnansweredQuestions/dataset_docs_private.json"
 require_file "data/datasets/private/UnansweredQuestions/dataset_code_private.json"
 if [[ $SKIP_GENERATION -eq 0 ]]; then
-  require_file "data/datasets/UnansweredQuestions/dataset_docs_public.json"
+  require_file \
+    "data/datasets/datasets_public/public/UnansweredQuestions/dataset_docs_public.json"
 fi
 
 prepare_public_subset() {
@@ -114,7 +115,10 @@ import json
 import sys
 from pathlib import Path
 
-source = Path("data/datasets/UnansweredQuestions/dataset_docs_public.json")
+source = Path(
+    "data/datasets/datasets_public/public/UnansweredQuestions/"
+    "dataset_docs_public.json"
+)
 output = Path(sys.argv[1])
 dataset = json.loads(source.read_text(encoding="utf-8"))
 output.write_text(
