@@ -6,7 +6,7 @@
 | R2 | Emitted path differs from `data/raw/vllm-0.10.1/...` | Correct result gets zero match | Path contract tests from public ground truth | Open |
 | R3 | One source span > 2000 chars | Whole output may be rejected | Enforce max span at chunk creation and output validation | Open |
 | R4 | Public benchmark overfitting | Private recall collapses | Keep private ground truth blind; prefer general chunk/ranking improvements | Open |
-| R5 | Index rebuild/query too slow | Fail 300s/90s gates | #45 profiles locally and keeps only an output-identical change with stable >=15% local gain before one campus confirmation | Campus index passes at 10s; warm retrieval fails at 92s vs 90s |
+| R5 | Index rebuild/query too slow | Fail 300s/90s gates | #45 retains one output-identical 64 MiB SQLite page-cache change after a 31.83% local CLI median gain; use one unanswered-input campus confirmation | Campus index passes at 10s and old warm retrieval fails at 92s; candidate is green locally but unverified on NFS |
 | R6 | LLM stack too heavy/fragile | Answer commands unusable | #24 runtime + #13/#14 exact-context, lazy reuse, abstention, atomic output and public Qwen smokes; provision cache | Two-question cache-only batch passed; broader quality, full-context memory and evaluator cache remain unverified |
 | R7 | GitHub Project token lacks scope | Board drifts from issues | Record limitation; sync later; never pretend success | Open |
 | R8 | Agent implements bonus/speculative architecture early | Scope/defense risk | Mandatory-first roadmap + Ponytail full | Open |

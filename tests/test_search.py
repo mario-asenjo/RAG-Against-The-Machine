@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -15,7 +16,12 @@ from src.domain import (
     SourceChunk,
     StudentSearchResults,
 )
-from src.infrastructure import save_lexical_index, search_lexical_index
+from src.infrastructure import (
+    save_lexical_index,
+    search_lexical_index,
+    search_lexical_index_batch,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,6 +101,27 @@ def test_search_ranks_natural_language_and_projects_exact_source(
         },
     ]
     assert limited == ranked[:1]
+
+
+def test_batch_search_expands_sqlite_page_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Batch retrieval must retain its measured per-connection cache margin."""
+    index_path = make_index(tmp_path)
+    statements: list[str] = []
+    real_connect = sqlite3.connect
+
+    def traced_connect(path: str | Path) -> sqlite3.Connection:
+        connection = real_connect(path)
+        connection.set_trace_callback(statements.append)
+        return connection
+
+    monkeypatch.setattr(sqlite3, "connect", traced_connect)
+
+    search_lexical_index_batch(index_path, ["vLLM"], k=1)
+
+    assert "PRAGMA cache_size=-65536" in statements
 
 
 def test_search_rejects_query_without_searchable_terms(tmp_path: Path) -> None:

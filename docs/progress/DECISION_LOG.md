@@ -141,7 +141,8 @@ change occurred between runs and private labels must not be used for tuning or
 evaluated again; subsequent #45 work uses public or unanswered inputs only.
 
 ## D-0014 — Mandatory uncached retrieval before bonus cache
-**Status:** accepted after campus evidence for #25; implementation remains #45.
+**Status:** accepted after campus evidence for #25; implemented locally in #45,
+pending one campus confirmation.
 
 Campus retrieval took 92s for 200 distinct questions, failing the mandatory 90s
 gate by 2s while Recall remained passing. Do not use #20's persistent repeated-query
@@ -150,6 +151,23 @@ processes, so useful cache hits are not expected. Profile the existing SQLite/NF
 path first and compare one change at a time. Perform optimization on repeatable
 local public runs, retaining only an output-identical option with a stable >=15%
 gain across at least three runs. Use at most one later campus confirmation on
-unanswered inputs; preserve BM25 ranking, exact spans, and public Recall. Cache,
-concurrency, semantic retrieval, and ranking changes remain out of scope until the
+unanswered inputs; preserve BM25 ranking, exact spans, and public Recall. Query-result
+cache, concurrency, semantic retrieval, and ranking changes remain out of scope until the
 mandatory gate is green.
+
+## D-0015 — Expand the batch SQLite page cache, not query-result cache
+**Status:** accepted for #45 locally; campus NFS confirmation remains required.
+
+Public phase profiling attributed 99.92% of local retrieval time to FTS execution.
+The 35.230 MiB index used SQLite's approximately 2 MiB default page cache. Setting
+`PRAGMA cache_size=-65536` on the existing batch connection improved the median
+two-process public CLI workload from 7.987s to 5.445s across three measured pairs
+(31.83%) while preserving byte-identical output and all public recall values.
+
+Keep this single per-connection 64 MiB page-cache statement. Do not use immutable
+mode: it did not improve the local probe. Do not retain mmap despite its small extra
+local gain because the target is campus NFS and the filesystem-dependent mechanism
+adds risk without needed margin. This is page reuse across distinct FTS queries, not
+#20's persistent repeated-query cache; it adds no cache entries or invalidation model.
+The home Windows result cannot close the mandatory timing gate, so use at most one
+post-merge campus confirmation on unanswered inputs and make no projected campus claim.

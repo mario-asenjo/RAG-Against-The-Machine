@@ -40,8 +40,8 @@ M5 — Mandatory readiness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#25 Rehearse complete mandatory CLI from a clean checkout](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/25)
-is active after #41 / PR #42 merged.
+[#45 Reduce campus NFS warm retrieval below mandatory limit](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/45)
+is the active blocking slice inside still-open readiness issue #25.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -103,12 +103,24 @@ is active after #41 / PR #42 merged.
 - The campus runner passed `make check` but later uv steps hit a transient NFS
   working-directory permission error. Manual evaluator commands then ran; edge
   cases passed 4/4 and answer generation produced three grounded outputs.
+- #45 local public phase profiling found FTS execution at 99.92% of measured
+  runtime. The existing SQLite page cache was approximately 2 MiB for a 35.230 MiB
+  index; startup, validation, connection, model construction and serialization
+  were negligible.
+- One batch-local `PRAGMA cache_size=-65536` requests a 64 MiB SQLite page cache.
+  Three home-Windows CLI pairs improved from a 7.987s median to 5.445s, a 31.83%
+  gain, with byte-identical outputs and unchanged public Recall@1/3/5/10.
+- Read-only and immutable URIs and `temp_store=MEMORY` did not help. mmap was
+  slightly faster locally but was rejected because its filesystem-dependent
+  behavior adds unjustified campus-NFS risk. See
+  `docs/project/15_RETRIEVAL_PERFORMANCE.md`.
 
 ## Next candidate
-After this PR merges, execute #45 locally to reduce uncached retrieval materially
-without changing ranking/Recall; do not iterate repeatedly on campus. Harden the
-campus runner's per-step working-directory reset inside #25, then use one final
-campus confirmation. After #25 is green, finish #15 documentation/defense readiness.
+After #45 merges, use one final native-campus confirmation on unanswered inputs;
+do not rerun private labels or tune repeatedly on campus. The 31.83% home-machine
+margin is encouraging but does not prove NFS performance. Harden the campus runner's
+per-step working-directory reset inside #25, then close #25 only if the combined
+retrieval gate passes. After #25 is green, finish #15 documentation/defense readiness.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

@@ -12,6 +12,7 @@ private native-Linux retrieval timing remains unclaimed.
 | M2-B1 | c05f1c6 | SQLite FTS5 BM25, one warm connection per dataset | Existing M2-I1 index, max 2000 | n/a | 12.187 (199 public questions, k=10) | 0.870 | 0.606 | 2000 | Both mandatory public recall thresholds pass with ample public timing margin; no ranking change justified |
 | M5-C1 | 7cd34f8 | Same mandatory SQLite FTS5 BM25 | Clean checkout, max 2000 | 55 | invalid on WSL/v9fs | 0.800 private | 0.510 private | 2000 | One authorized blind run; Recall gates pass, timing gate unclaimed due clock discontinuity and mounted filesystem |
 | M5-C2 | e367ecb | Same mandatory SQLite FTS5 BM25 | Campus NFS4, max 2000 | 10 | 92 (46 docs + 46 code; 200 private questions, k=10) | 0.800 private | 0.510 private | 2000 | Recall/index gates pass; warm retrieval fails by 2s, so mandatory performance work #45 blocks bonus unlock |
+| M5-P1 | local #45 candidate | Same BM25 with 64 MiB per-connection SQLite page cache | Existing public index, max 2000 | n/a | 5.445 median (199 public questions, k=10; home Windows) | 0.870 | 0.606 | 2000 | 31.83% faster than 7.987s local median across three CLI pairs; byte-identical output; campus NFS confirmation still required |
 
 ## M5-C2 campus reproduction record
 
@@ -30,6 +31,22 @@ private native-Linux retrieval timing remains unclaimed.
   stable >=15% improvement with unchanged outputs. Use at most one later campus
   confirmation. Query caching is not applicable because the mandatory workload
   contains distinct questions in fresh processes.
+
+## M5-P1 local retrieval optimization
+
+- Fixed workload: two fresh CLI processes over 100 public docs plus 99 public code
+  questions, `k=10`, existing 35.230 MiB SQLite index, one warm-up pair followed by
+  three measured pairs.
+- Baseline combined runs: 8.015s, 7.987s, 7.967s; median 7.987s.
+- 64 MiB page-cache runs: 5.445s, 5.631s, 5.187s; median 5.445s.
+- Median improvement: 31.83%. Baseline/candidate output files were byte-identical.
+- Public recall stayed Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667 at Recall@1/3/5/10.
+- Phase profiling attributed 99.92% of the baseline to FTS execution. Read-only /
+  immutable URI and temp-store changes did not help. mmap was slightly faster but
+  rejected as a riskier filesystem-dependent choice for the actual NFS target.
+- This is a home Windows measurement, not a campus result. Details and the one-run
+  confirmation rule are in `docs/project/15_RETRIEVAL_PERFORMANCE.md`.
 
 ## Answer generation timing notes
 
