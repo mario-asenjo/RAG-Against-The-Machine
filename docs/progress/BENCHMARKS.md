@@ -11,6 +11,25 @@ private native-Linux retrieval timing remains unclaimed.
 | M2-R1 | 8338e96 | SQLite FTS5 BM25, one warm connection per dataset | Existing M2-I1 index | n/a | 16.014 (199 public questions, k=5) | n/a | n/a | 2000 | 100 docs + 99 code questions preserve order; evaluator's private 200-question run remains unclaimed |
 | M2-B1 | c05f1c6 | SQLite FTS5 BM25, one warm connection per dataset | Existing M2-I1 index, max 2000 | n/a | 12.187 (199 public questions, k=10) | 0.870 | 0.606 | 2000 | Both mandatory public recall thresholds pass with ample public timing margin; no ranking change justified |
 | M5-C1 | 7cd34f8 | Same mandatory SQLite FTS5 BM25 | Clean checkout, max 2000 | 55 | invalid on WSL/v9fs | 0.800 private | 0.510 private | 2000 | One authorized blind run; Recall gates pass, timing gate unclaimed due clock discontinuity and mounted filesystem |
+| M5-C2 | e367ecb | Same mandatory SQLite FTS5 BM25 | Campus NFS4, max 2000 | 10 | 92 (46 docs + 46 code; 200 private questions, k=10) | 0.800 private | 0.510 private | 2000 | Recall/index gates pass; warm retrieval fails by 2s, so mandatory performance work #45 blocks bonus unlock |
+
+## M5-C2 campus reproduction record
+
+- Host: `c2r13s5.42madrid.com`, Ubuntu 5.15 kernel, Intel Core i5-8500 with
+  6 cores / 6 threads, 7.6 GiB RAM.
+- Filesystem: campus `/sgoinfre` NFS4 mount.
+- Commit: merged `e367ecb`.
+- Exact evaluator script: `exam_retrieval.sh --student-path .
+  --moulinette-path ./moulinette-ubuntu`.
+- Index: 10s. Docs: 46s. Code: 46s. Combined: 92s, failing the strict 90s
+  gate by 2s (2.22%).
+- The user-run campus evaluator reproduced Docs Recall@5 0.800 and Code Recall@5
+  0.510 at the same frozen configuration. No parameter changed between the WSL
+  and campus runs; no further private-label evaluation or tuning is authorized.
+- Conclusion: optimize against repeatable local public runs first, requiring a
+  stable >=15% improvement with unchanged outputs. Use at most one later campus
+  confirmation. Query caching is not applicable because the mandatory workload
+  contains distinct questions in fresh processes.
 
 ## Answer generation timing notes
 

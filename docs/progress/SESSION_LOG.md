@@ -87,6 +87,40 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   flattened question directories. Data-layout docs and the campus runner now use
   that exact path; #43 still owns the bootstrap implementation.
 
+## 2026-09-13 — Campus evaluation evidence and #45 plan
+- Reviewed all 12 local `evaluations/` artifacts without committing generated
+  data: two DOCX transcripts, the campus log, edge summary, and eight edge logs.
+- On native campus Ubuntu over `/sgoinfre` NFS4 at merged `e367ecb`, indexing
+  passed in 10s and private Recall@5 passed at Docs 0.800 / Code 0.510. Retrieval
+  took 46s + 46s = 92s, failing the <=90s gate by 2s.
+- Edge artifacts confirm 4/4 real traceback-free outcomes. The answer transcript
+  reports 88/100 valid docs questions and three generated answers, but contains
+  no final human pass/fail judgment; no formal answer-quality pass is claimed.
+- The campus runner's post-check uv steps failed because the NFS working directory
+  became unstatable; manual evaluator commands succeeded afterward. Plan: re-enter
+  `$ROOT` per runner step rather than masking command failures.
+- Created #45 for mandatory uncached retrieval profiling. Persistent query cache
+  remains a bonus and cannot help 200 distinct first-seen evaluator questions.
+  Compare SQLite options locally one at a time and require unchanged outputs plus
+  a stable material gain before retaining a production optimization.
+
+## 2026-09-13 — #43 bootstrap fix on PR #46
+- Added one synthetic archive regression reproducing the supplied vLLM, public,
+  and private top-level layouts. RED reached the real public `cp: cannot stat`
+  failure after correcting a Windows test-path/CRLF harness issue.
+- Replaced ambiguous `find */public|private` discovery with exact supplied roots.
+  Public nesting is preserved at `data/datasets/datasets_public/public/`; private
+  data lands once at `data/datasets/private/`; stale flattened public directories
+  are removed.
+- Focused test passed. A disposable run against all three real supplied archives
+  verified corpus/public/private destinations, no flattened public directories,
+  and no `private/private`; the disposable tree was removed.
+- Final gates: focused bootstrap test and `bash -n` passed; `make check` passed
+  with 123 tests in 87.13s; Flake8, context validation, normal/strict mypy over
+  36 files, and `git diff --check` passed.
+- Revised #45 per Mario's direction: optimize and repeat locally, require a stable
+  >=15% gain, then use at most one campus confirmation rather than iterating there.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

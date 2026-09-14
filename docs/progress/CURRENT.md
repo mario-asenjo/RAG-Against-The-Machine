@@ -89,17 +89,26 @@ is active after #41 / PR #42 merged.
   passed in 55s; private Docs Recall@5 passed at 0.800 and Code Recall@5 passed at
   0.510. The warm timing gate is unclaimed because a WSL clock discontinuity made
   the script's docs duration invalid and mounted-v9fs code retrieval took 115s.
-- Clean archive staging exposed #43: `bootstrap-data.sh` selects its own
-  `<tmp>/public` staging directory instead of `datasets_public/public`; its fix
-  must preserve the latter under `data/datasets/datasets_public/public/`.
+- #43 is fixed on the current PR: `bootstrap-data.sh` now uses exact supplied
+  archive roots and preserves public data under
+  `data/datasets/datasets_public/public/` and private data under
+  `data/datasets/private/`, without flattened or double-nested copies.
 - `scripts/campus_test.sh` now provides the pending native-campus measurement in
   one command and captures complete stdout/stderr to one ignored log without
   opening private labels or rerunning Moulinette.
+- Campus evidence at merged `e367ecb`: indexing passed in 10s and both private
+  Recall@5 gates passed (Docs 0.800, Code 0.510), but warm retrieval took
+  46s docs + 46s code = 92s and failed the mandatory <=90s gate. The 2s miss is
+  small but has no safety margin. Issue #45 tracks measured uncached optimization.
+- The campus runner passed `make check` but later uv steps hit a transient NFS
+  working-directory permission error. Manual evaluator commands then ran; edge
+  cases passed 4/4 and answer generation produced three grounded outputs.
 
 ## Next candidate
-Fix the narrow #43 bootstrap defect, then record campus-native retrieval and Qwen
-timings without rerunning private-label evaluation. After #25 is green, finish #15
-mandatory documentation/defense readiness.
+After this PR merges, execute #45 locally to reduce uncached retrieval materially
+without changing ranking/Recall; do not iterate repeatedly on campus. Harden the
+campus runner's per-step working-directory reset inside #25, then use one final
+campus confirmation. After #25 is green, finish #15 documentation/defense readiness.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
