@@ -231,6 +231,7 @@ def search_lexical_index_batch(
     _require_index(index_path)
     try:
         with closing(sqlite3.connect(index_path)) as connection:
+            connection.execute("PRAGMA cache_size=-65536")
             return [
                 _search_connection(connection, query, k)
                 for query in tqdm(

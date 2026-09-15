@@ -121,6 +121,36 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
 - Revised #45 per Mario's direction: optimize and repeat locally, require a stable
   >=15% gain, then use at most one campus confirmation rather than iterating there.
 
+## 2026-09-14 — #45 local mandatory retrieval optimization
+- Started `perf/issue-45-nfs-retrieval` from merged PR #46 at `c77aa91`; moved #45
+  to In Progress and assigned M5 while preserving the unrelated untracked roadmap
+  prompt.
+- Used only the public 100-doc/99-code datasets and existing public index. Phase
+  profiling found 99.92% of local time in FTS execution; the 35.230 MiB index had
+  SQLite's approximately 2 MiB default page cache.
+- Compared current, read-only, immutable, temp-store, 32/64 MiB page-cache, and mmap
+  options one setting at a time. Read-only/immutable/temp-store did not help. mmap
+  was slightly faster than page cache but rejected because the target is NFS.
+- Retained one batch-local `PRAGMA cache_size=-65536`. Three measured two-process
+  public CLI pairs improved from 7.987s median to 5.445s, a 31.83% gain. Baseline
+  and candidate docs/code files were byte-identical; public Recall@1/3/5/10 stayed
+  Docs 0.600/0.780/0.870/0.890 and Code 0.354/0.545/0.606/0.667.
+- Added one focused trace regression for the measured connection setting. Raw
+  traces/outputs remain ignored under `data/output/profiling/issue45/`; no private
+  labels, persistent query cache, mmap, concurrency, ranking, or generation change.
+- Home Windows evidence cannot prove campus NFS performance. One unanswered-input
+  campus confirmation remains before the mandatory timing gate can be called green.
+- Fresh candidate gates: 22 focused search tests; `make check` with 124 tests in
+  87.94s; Flake8, normal/strict mypy over 36 files, context validation and
+  `git diff --check` passed. Candidate outputs revalidated 199 questions, 1,990
+  sources, `k=10`, and a maximum 2,000-character span.
+- Fresh CLI edge smokes returned empty query 2, nonsense query 0, and missing
+  dataset 2 with clear diagnostics where applicable and no tracebacks.
+- Ponytail-full review found no blocker and retained the one-line SQLite-native
+  change plus one regression. Its only caveat matches the documented open risk:
+  campus NFS performance remains unverified. Project #12's stale M4 README was
+  updated and read back exactly as M5 with #45 active and the bonus gate pending.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.
