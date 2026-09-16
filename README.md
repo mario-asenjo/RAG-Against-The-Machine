@@ -309,7 +309,11 @@ Recorded public retrieval quality is:
 
 Both mandatory Recall@5 thresholds pass: documentation requires at least 0.80 and
 code at least 0.50. The public 199-question baseline completed in 12.187 seconds
-before the later page-cache optimization.
+before the later page-cache optimization. A final disposable clean-checkout run at
+commit `010e568` rebuilt the supplied corpus in 3.551 seconds and completed the
+public docs/code searches in 2.314 and 2.612 seconds respectively (4.926 seconds
+combined), while reproducing every Recall value in the table. These local timings
+are host-specific and are not substituted for the native-campus gate evidence.
 
 Native campus evidence on the supplied corpus and NFS4 filesystem:
 

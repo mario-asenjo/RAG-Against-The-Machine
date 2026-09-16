@@ -323,7 +323,13 @@ mayor de Qwen no implica que todos los hosts puedan usarlo eficientemente.
 Docs R@1/3/5/10 = 0.600 / 0.780 / 0.870 / 0.890
 Code R@1/3/5/10 = 0.354 / 0.545 / 0.606 / 0.667
 199 preguntas k=10 = 12.187 s en baseline público
+Rehearsal limpio final: index 3.551 s; retrieval 4.926 s combinado
 ```
+
+El rehearsal final se ejecutó desde un worktree detached, con `.venv` nueva y los
+archives públicos suministrados. Reprodujo exactamente los mismos valores de Recall,
+por lo que la diferencia de tiempo es evidencia de ejecución del baseline actual, no
+de un cambio adicional de ranking.
 
 ### Campus
 

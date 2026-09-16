@@ -15,6 +15,27 @@ without reopening private labels.
 | M5-C2 | e367ecb | Same mandatory SQLite FTS5 BM25 | Campus NFS4, max 2000 | 10 | 92 (46 docs + 46 code; 200 private questions, k=10) | 0.800 private | 0.510 private | 2000 | Recall/index gates pass; warm retrieval fails by 2s, so mandatory performance work #45 blocks bonus unlock |
 | M5-P1 | local #45 candidate | Same BM25 with 64 MiB per-connection SQLite page cache | Existing public index, max 2000 | n/a | 5.445 median (199 public questions, k=10; home Windows) | 0.870 | 0.606 | 2000 | 31.83% faster than 7.987s local median across three CLI pairs; byte-identical output; campus NFS confirmation still required |
 | M5-C3 | 6ff741a | Same BM25 with 64 MiB per-connection SQLite page cache | Campus NFS4, max 2000 | 10.172 | 8.193 (4.079 docs + 4.114 code; 200 private unanswered questions, k=10) | not rerun | not rerun | 2000 previously pinned | Mandatory timing passes with 81.807s headroom; host and dirty-runner differences prevent assigning the full 91.09% reduction to page cache |
+| M5-F1 | 010e568 | Final mandatory SQLite FTS5 BM25 | Disposable clean checkout, supplied public corpus, max 2000 | 3.551 | 4.926 (2.314 docs + 2.612 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Final public rehearsal reproduces Recall, output shape, all mandatory commands, Qwen smokes and edge behavior |
+
+## M5-F1 final public clean-checkout rehearsal
+
+- Disposable detached worktree at #15 commit `010e568`; supplied vLLM/public
+  archives staged only under ignored paths with `scripts/bootstrap-data.sh`.
+- Fresh `.venv`: `uv sync --locked` installed 44 packages; `make check` passed
+  context, Flake8, mypy over 38 files and 126 tests; strict mypy passed.
+- Indexed 1,969 documents into 17,134 chunks in 3.551s.
+- Public `k=10`: docs 2.314s, code 2.612s, 4.926s combined. Local evaluation
+  reproduced Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667 at Recall@1/3/5/10.
+- Both outputs revalidated as `StudentSearchResults`: 199 questions, 1,990
+  retrieved sources, exact `k=10`, and maximum span 2,000.
+- `search`, `search_dataset`, `evaluate`, model-free `answer --k 0`, a cache-only
+  public Volta answer, and a two-question cache-only `answer_dataset` all passed.
+  The Volta answer was `Volta refers to SM 7.0.` from one exact source; batch
+  ID/question/source/`k` identity revalidated.
+- The four supplied edge-command equivalents returned expected exits 2/0/0/2 and
+  no tracebacks. Runtime artifacts, corpus, index, outputs and model cache remained
+  ignored; no private data was staged or used.
 
 ## M5-C2 campus reproduction record
 
