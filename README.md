@@ -108,5 +108,5 @@ Pydantic wrapper under the input filename. Progress stays on stderr. See
 `docs/project/11_ANSWER_DATASET.md`.
 
 Post-mandatory readiness and bonus sequencing are tracked in
-`docs/project/12_POST_MANDATORY_ROADMAP.md`. Bonuses remain blocked until the
-mandatory clean-checkout and defense-readiness gates are green.
+`docs/project/12_POST_MANDATORY_ROADMAP.md`. The mandatory retrieval timing gate
+is campus-green; final README/defense readiness in #15 remains before bonuses.

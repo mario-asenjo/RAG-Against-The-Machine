@@ -243,3 +243,24 @@ immutable SQLite access, and individual page-cache/mmap/temp-store settings.
 Preserve ranking and Recall exactly. Keep a candidate only after at least three
 local runs show a stable material improvement, targeting >=15%. After merge, use
 at most one campus confirmation on unanswered inputs rather than iterating there.
+
+## Post-merge campus confirmation — 2026-09-15
+
+Merged PR #47 at `6ff741a` passed the one allowed native-campus confirmation on
+`/sgoinfre` NFS4. The runner searched 100 private unanswered docs questions in
+4.079s and 100 private unanswered code questions in 4.114s: 8.193s combined,
+leaving 81.807s below the mandatory 90-second ceiling. Private answered labels
+and Moulinette were not opened or executed, so no private Recall rerun occurred.
+
+The same run passed `uv sync --locked`, `make check` with 124 tests, indexing in
+10.172s, single search, `answer --k 0`, public single/batch Qwen smokes, exact
+batch identity, and the supplied edge exam 4/4. Every step exited 0 and the
+runner ended with `CAMPUS_TEST_RESULT=PASS`.
+
+The log's integrity section reports an uncommitted `scripts/campus_test.sh`
+change whose exact diff was not retained. The RAG implementation itself is
+pinned to the clean merged commit, so the retrieval result closes #45, while
+#25 adds the known `cd "$ROOT"` plus `pwd -P` guard before every tracked runner
+step. Generated campus artifacts remain ignored and uncommitted. Full timing,
+environment, provenance, and attribution limits are recorded in
+`docs/project/15_RETRIEVAL_PERFORMANCE.md`.

@@ -141,8 +141,7 @@ change occurred between runs and private labels must not be used for tuning or
 evaluated again; subsequent #45 work uses public or unanswered inputs only.
 
 ## D-0014 — Mandatory uncached retrieval before bonus cache
-**Status:** accepted after campus evidence for #25; implemented locally in #45,
-pending one campus confirmation.
+**Status:** accepted and campus-confirmed by #45.
 
 Campus retrieval took 92s for 200 distinct questions, failing the mandatory 90s
 gate by 2s while Recall remained passing. Do not use #20's persistent repeated-query
@@ -155,8 +154,13 @@ unanswered inputs; preserve BM25 ranking, exact spans, and public Recall. Query-
 cache, concurrency, semantic retrieval, and ranking changes remain out of scope until the
 mandatory gate is green.
 
+The one post-merge confirmation at `6ff741a` processed 200 private unanswered
+questions on campus NFS in 8.193 seconds without opening labels or invoking
+Moulinette. The mandatory timing gate is green; no repeated campus tuning is
+authorized.
+
 ## D-0015 — Expand the batch SQLite page cache, not query-result cache
-**Status:** accepted for #45 locally; campus NFS confirmation remains required.
+**Status:** accepted and confirmed on campus NFS for #45.
 
 Public phase profiling attributed 99.92% of local retrieval time to FTS execution.
 The 35.230 MiB index used SQLite's approximately 2 MiB default page cache. Setting
@@ -169,5 +173,8 @@ mode: it did not improve the local probe. Do not retain mmap despite its small e
 local gain because the target is campus NFS and the filesystem-dependent mechanism
 adds risk without needed margin. This is page reuse across distinct FTS queries, not
 #20's persistent repeated-query cache; it adds no cache entries or invalidation model.
-The home Windows result cannot close the mandatory timing gate, so use at most one
-post-merge campus confirmation on unanswered inputs and make no projected campus claim.
+The home Windows result did not itself close the mandatory timing gate. The one
+allowed post-merge campus confirmation later passed at 8.193 seconds combined.
+Because that observation used another host and an uncommitted runner modification,
+it proves compliance but does not attribute the full cross-run improvement to the
+page-cache statement.

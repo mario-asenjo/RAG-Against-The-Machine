@@ -1,8 +1,9 @@
 # Retrieval benchmark ledger
 
 The persisted lexical baseline passes the public recall and warm-retrieval
-gates. One explicitly authorized blind private run passed both Recall@5 thresholds;
-private native-Linux retrieval timing remains unclaimed.
+gates. One explicitly authorized blind private run passed both Recall@5 thresholds,
+and the later unanswered-input native-Linux confirmation passed the timing gate
+without reopening private labels.
 
 | Run | Commit | Method | Chunking | Index s | Warm search s | Docs R@5 | Code R@5 | Max span | Conclusion |
 |---|---|---|---|---:|---:|---:|---:|---:|---|
@@ -13,6 +14,7 @@ private native-Linux retrieval timing remains unclaimed.
 | M5-C1 | 7cd34f8 | Same mandatory SQLite FTS5 BM25 | Clean checkout, max 2000 | 55 | invalid on WSL/v9fs | 0.800 private | 0.510 private | 2000 | One authorized blind run; Recall gates pass, timing gate unclaimed due clock discontinuity and mounted filesystem |
 | M5-C2 | e367ecb | Same mandatory SQLite FTS5 BM25 | Campus NFS4, max 2000 | 10 | 92 (46 docs + 46 code; 200 private questions, k=10) | 0.800 private | 0.510 private | 2000 | Recall/index gates pass; warm retrieval fails by 2s, so mandatory performance work #45 blocks bonus unlock |
 | M5-P1 | local #45 candidate | Same BM25 with 64 MiB per-connection SQLite page cache | Existing public index, max 2000 | n/a | 5.445 median (199 public questions, k=10; home Windows) | 0.870 | 0.606 | 2000 | 31.83% faster than 7.987s local median across three CLI pairs; byte-identical output; campus NFS confirmation still required |
+| M5-C3 | 6ff741a | Same BM25 with 64 MiB per-connection SQLite page cache | Campus NFS4, max 2000 | 10.172 | 8.193 (4.079 docs + 4.114 code; 200 private unanswered questions, k=10) | not rerun | not rerun | 2000 previously pinned | Mandatory timing passes with 81.807s headroom; host and dirty-runner differences prevent assigning the full 91.09% reduction to page cache |
 
 ## M5-C2 campus reproduction record
 
@@ -47,6 +49,23 @@ private native-Linux retrieval timing remains unclaimed.
   rejected as a riskier filesystem-dependent choice for the actual NFS target.
 - This is a home Windows measurement, not a campus result. Details and the one-run
   confirmation rule are in `docs/project/15_RETRIEVAL_PERFORMANCE.md`.
+
+## M5-C3 native campus confirmation
+
+- Date/run: 2026-09-15, `evaluations/campus/2026-09-15_18-09-20/`.
+- Commit: merged PR #47 at `6ff741a`; host `c3r4s5.42madrid.com`, Intel i5-8500,
+  6 cores, 7.6 GiB RAM, `/sgoinfre` NFS4, Python 3.10.12, uv 0.12.15.
+- Index: 10.172s for 1,969 documents and 17,134 chunks.
+- Private unanswered retrieval only: docs 4.079s, code 4.114s, combined 8.193s.
+  The <=90s gate passes with 81.807s headroom.
+- Private labels/Moulinette were not opened or run. Prior Recall aggregates were
+  not re-evaluated and remain separate M5-C2 evidence.
+- Compared with M5-C2's 92s observation, elapsed time fell 83.807s / 91.09%
+  (11.23x). Treat this as a cross-host confirmation, not causal attribution:
+  host/load differed and the runner integrity report contained an uncaptured
+  local `scripts/campus_test.sh` modification.
+- `uv sync`, 124-test `make check`, public Qwen single/batch smokes, exact batch
+  identity, and edge exam 4/4 also passed. Every runner step exited 0.
 
 ## Answer generation timing notes
 

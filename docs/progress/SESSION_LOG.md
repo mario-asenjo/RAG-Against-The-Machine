@@ -151,6 +151,28 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   campus NFS performance remains unverified. Project #12's stale M4 README was
   updated and read back exactly as M5 with #45 active and the bonus gate pending.
 
+## 2026-09-16 — #45 campus confirmation and #25 runner hardening
+- Reviewed the metadata and complete log for all eight ignored artifacts from
+  campus run `2026-09-15_18-09-20`
+  without opening private answered labels. The RAG implementation was merged PR
+  #47 commit `6ff741a`; the host was `c3r4s5.42madrid.com` on `/sgoinfre` NFS4.
+- Indexing passed in 10.172s. Private unanswered retrieval took 4.079s for 100
+  docs questions and 4.114s for 100 code questions: 8.193s combined, passing the
+  <=90s gate with 81.807s headroom. No Moulinette/private Recall rerun occurred.
+- `uv sync --locked`, 124-test `make check`, single search, `answer --k 0`, public
+  Qwen single/batch smokes, batch identity, and edge exam 4/4 all passed; every
+  runner step exited 0 and the final result was PASS.
+- The result is 91.09% below the prior 92s campus observation, but the host changed
+  and the integrity log reports an uncaptured local `scripts/campus_test.sh` edit.
+  Recorded the result as compliance evidence, not controlled causal attribution.
+- Added the smallest tracked #25 mitigation for the known NFS cwd failure: every
+  runner step now executes only after `cd "$ROOT"` and successful `pwd -P`.
+  Generated campus outputs remain ignored; the unrelated roadmap prompt remains
+  untracked and untouched.
+- Fresh follow-up checks: the focused runner contract test passed; `bash -n` and
+  `--help` passed; `make check` passed context, Flake8, normal mypy over 37 files,
+  and 125 tests in 50.95s; strict mypy and `git diff --check` passed.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.
