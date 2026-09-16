@@ -323,12 +323,13 @@ Native campus evidence on the supplied corpus and NFS4 filesystem:
 | Warm retrieval, 200 unanswered questions | 8.193 s | <= 90 s |
 | Maximum source span | 2,000 characters | <= 2,000 |
 
-The private Recall labels were evaluated only in an explicitly authorized blind run:
-Docs Recall@5 was 0.800 and Code Recall@5 was 0.510. A later campus confirmation
-used unanswered inputs only and did not reopen those labels. The 8.193-second run
-used another campus host and a locally modified runner, so it proves compliance on
-campus NFS but is not used to attribute the complete cross-run improvement solely to
-the SQLite page cache.
+The only retained private-label evidence is aggregate: an explicitly authorized
+blind validation and its unchanged-configuration campus reproduction both recorded
+Docs Recall@5 0.800 and Code Recall@5 0.510. Those observations were confirmation,
+not tuning inputs. The later 8.193-second campus timing confirmation used unanswered
+inputs only and did not reopen the labels. It also used another campus host and a
+locally modified runner, so it proves compliance on campus NFS but is not used to
+attribute the complete cross-run improvement solely to the SQLite page cache.
 
 Generation is CPU-bound and varies by host. A public ten-question profile showed
 that generation accounted for roughly 91-97% of answer-batch wall time. Retrieval,

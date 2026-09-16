@@ -60,9 +60,11 @@ justificar con evidencia por qué la solución cumple los límites del subject.
 | 200 búsquedas warm en campus NFS | 8.193 s | <= 90 s |
 | Máximo source span | 2.000 caracteres | <= 2.000 |
 
-El holdout privado se utilizó únicamente tras autorización explícita. Los agregados
-fueron Docs Recall@5 0.800 y Code Recall@5 0.510. No se inspeccionaron spans privados
-para ajustar el sistema y la confirmación posterior de tiempo usó inputs sin respuesta.
+El holdout privado se utilizó únicamente tras autorización explícita. La validación
+blind inicial y su reproducción en campus con configuración sin cambios conservaron
+solo los mismos agregados: Docs Recall@5 0.800 y Code Recall@5 0.510. Fueron evidencia
+de confirmación, no inputs de tuning; no se inspeccionaron spans privados para ajustar
+el sistema. La confirmación posterior de tiempo usó inputs sin respuesta.
 
 ## 4. Recorrido completo del pipeline
 
