@@ -72,9 +72,15 @@ run_step() {
   printf ' %q' "$@"
   echo
   set +e
-  TIMEFORMAT='STEP_TIME real=%3R user=%3U sys=%3S'
-  time "$@"
-  local status=$?
+  local status
+  if cd "$ROOT" && pwd -P >/dev/null; then
+    TIMEFORMAT='STEP_TIME real=%3R user=%3U sys=%3S'
+    time "$@"
+    status=$?
+  else
+    echo "Unable to re-enter repository root: $ROOT" >&2
+    status=1
+  fi
   set -e
   echo "STEP_RESULT name=$name exit=$status"
   echo "===== END $name ====="

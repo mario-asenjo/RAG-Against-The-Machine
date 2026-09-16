@@ -161,15 +161,83 @@ query exited 2 with `query must contain searchable terms`; a nonsense query
 exited 0 with no sources or diagnostics; and a missing dataset exited 2 with a
 clear file error. No output file was created or replaced by the failing batch.
 
+## Native campus confirmation — 2026-09-15
+
+Mario ran the merged candidate once on native campus Linux using private
+unanswered questions only. The run did not open answered labels or invoke
+Moulinette, so the previously recorded private Recall values were not
+re-evaluated.
+
+### Environment and provenance
+
+- Run: `2026-09-15_18-09-20`.
+- RAG commit: `6ff741a85bbfd848a3020980f22eec6990b59fa4`, the merge commit
+  for PR #47.
+- Host: `c3r4s5.42madrid.com`, Linux 5.15.
+- CPU: Intel Core i5-8500, 6 cores / 6 threads; PyTorch default: 6 threads.
+- Memory: 7.6 GiB RAM and 4.0 GiB swap.
+- Filesystem: campus `/sgoinfre` NFS4.
+- Runtime: Python 3.10.12 and uv 0.12.15.
+- Complete ignored log: `evaluations/campus/2026-09-15_18-09-20/campus_test.log`
+  (33,034 bytes; SHA-256
+  `791ad01068805dc85007df969ecd9b1e892a5739597b8d831f25560da80a4995`).
+
+The final integrity section reports `M scripts/campus_test.sh`. The exact local
+runner diff was not captured, so this is not evidence that the tracked runner
+itself was clean. It does not invalidate the retrieval measurement: `GIT_HEAD`
+pins the RAG implementation to the merged PR #47 commit, and generated indexes,
+model assets, and evaluation outputs remained ignored. Issue #25 separately
+adds the known per-step repository-root guard to the tracked runner.
+
+### Mandatory retrieval result
+
+| Step | Result |
+|---|---:|
+| `uv sync --locked` | PASS, 0.111s |
+| `make check` | PASS, 124 tests; 124.927s step time |
+| Index 1,969 documents / 17,134 chunks | PASS, 10.172s |
+| Private unanswered docs, 100 questions, `k=10` | PASS, 4.079s |
+| Private unanswered code, 100 questions, `k=10` | PASS, 4.114s |
+| Combined warm retrieval | **PASS, 8.193s <= 90s** |
+| Headroom below limit | 81.807s |
+
+The confirmation is 83.807 seconds lower than the earlier 92-second campus
+observation (91.09%, or 11.23x). This is not a controlled paired benchmark:
+the host changed from `c2r13s5` to `c3r4s5`, machine load was not controlled,
+and the runner had an uncommitted modification. Therefore the evidence proves
+that the merged candidate passed the required workload on campus NFS with wide
+margin, but it does not assign the entire observed difference to the page-cache
+statement.
+
+### Remaining mandatory smokes
+
+- Single search passed in 0.655s.
+- `answer --k 0` abstained without loading the model in 0.240s.
+- Public two-question search passed in 0.903s.
+- Qwen loaded and answered the public Volta question correctly from one exact
+  source in 33.763s: `Volta refers to SM 7.0.`
+- Public two-question `answer_dataset` passed in 71.517s and exact input/output
+  identity validation reported `BATCH_IDENTITY=PASS`.
+- The supplied edge exam passed 4/4 in 2.115s without tracebacks.
+- Every runner step exited 0 and `CAMPUS_TEST_RESULT=PASS`.
+
+Eight generated artifacts were retained locally under the ignored run directory:
+the complete log, two private unanswered retrieval outputs, the two-question
+public input/search/answer files, and the single-answer plus `k=0` outputs. None
+is committed.
+
+The tracked #25 follow-up passed one focused runner contract test, `bash -n`,
+the runner's `--help` path, `make check` with 125 tests in 50.95s, strict mypy
+over 37 files, Flake8, context validation, and `git diff --check`.
+
 ## Limits and confirmation rule
 
-The 31.83% local CLI margin exceeds issue #45's 15% retention threshold, but
-this home Windows result cannot prove campus NFS performance. No projection
-from 5.445 local seconds to a campus time is claimed.
+At candidate-selection time, the 31.83% local CLI margin exceeded issue #45's
+15% retention threshold but could not prove campus NFS performance. No
+projection from 5.445 local seconds to a campus time was used.
 
-After merge, run at most one native-campus confirmation on unanswered inputs
-using the unchanged candidate. Do not rerun private labels. The mandatory
-retrieval gate remains pending until that run reports a combined time below
-90 seconds with useful safety margin. If the candidate does not transfer to
-NFS, record it and open one narrower NFS diagnostic issue; do not add query
-cache, concurrency, semantic retrieval, or ranking changes speculatively.
+The one allowed native-campus confirmation has now been consumed and passed on
+unanswered inputs. Do not rerun private labels or repeat campus tuning. Issue
+#45's mandatory timing gate is green; the remaining limitation is attribution,
+not compliance. Query cache, concurrency, semantic retrieval, and ranking
+changes remain out of scope until mandatory readiness documentation is closed.

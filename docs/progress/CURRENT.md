@@ -40,8 +40,9 @@ M5 — Mandatory readiness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#45 Reduce campus NFS warm retrieval below mandatory limit](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/45)
-is the active blocking slice inside still-open readiness issue #25.
+[#25 Rehearse complete mandatory CLI from a clean checkout](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/25)
+is the final mandatory-readiness evidence slice. Issue #45's implementation is
+merged and its campus timing gate is confirmed.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -89,7 +90,7 @@ is the active blocking slice inside still-open readiness issue #25.
   passed in 55s; private Docs Recall@5 passed at 0.800 and Code Recall@5 passed at
   0.510. The warm timing gate is unclaimed because a WSL clock discontinuity made
   the script's docs duration invalid and mounted-v9fs code retrieval took 115s.
-- #43 is fixed on the current PR: `bootstrap-data.sh` now uses exact supplied
+- #43 was fixed by merged PR #46: `bootstrap-data.sh` uses exact supplied
   archive roots and preserves public data under
   `data/datasets/datasets_public/public/` and private data under
   `data/datasets/private/`, without flattened or double-nested copies.
@@ -114,13 +115,22 @@ is the active blocking slice inside still-open readiness issue #25.
   slightly faster locally but was rejected because its filesystem-dependent
   behavior adds unjustified campus-NFS risk. See
   `docs/project/15_RETRIEVAL_PERFORMANCE.md`.
+- One post-merge campus confirmation at `6ff741a` processed 100 private unanswered
+  docs questions in 4.079s and 100 code questions in 4.114s on `/sgoinfre` NFS4.
+  The 8.193s combined result passes the <=90s gate with 81.807s headroom. Private
+  labels and Moulinette were not reopened, so prior Recall evidence was not rerun.
+- The same run passed `uv sync --locked`, `make check` with 124 tests, indexing in
+  10.172s, public Qwen single/batch smokes, exact batch identity, and edge cases
+  4/4. Every step exited 0 and the runner reported `CAMPUS_TEST_RESULT=PASS`.
+- The host changed and the log reports an uncaptured local runner modification;
+  therefore the run proves compliance but not that page cache caused the full
+  91.09% cross-run reduction. The tracked runner now re-enters and validates the
+  repository root before every step to mitigate the known NFS cwd failure.
 
 ## Next candidate
-After #45 merges, use one final native-campus confirmation on unanswered inputs;
-do not rerun private labels or tune repeatedly on campus. The 31.83% home-machine
-margin is encouraging but does not prove NFS performance. Harden the campus runner's
-per-step working-directory reset inside #25, then close #25 only if the combined
-retrieval gate passes. After #25 is green, finish #15 documentation/defense readiness.
+Merge the #25 evidence/runner-hardening PR, close #45 and #25, then execute #15
+documentation and defense readiness. Do not rerun private labels or repeat campus
+tuning. Bonuses remain blocked until #15 is complete.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
