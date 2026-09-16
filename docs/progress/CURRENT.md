@@ -1,7 +1,8 @@
 # Current project state
 
 ## Milestone
-M5 — Mandatory readiness.
+M5 — Mandatory readiness complete at merged baseline `7c411ef`.
+Next milestone: Bonus — Optional enhancements.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -40,8 +41,8 @@ M5 — Mandatory readiness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#15 Finalize README, architecture/performance docs, AI usage, and defense rehearsal](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/15)
-is the final mandatory-delivery slice. Issues #25 and #45 are merged and closed.
+No implementation issue is active. [#19 Bonus: support incremental index updates](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/19)
+is refined and unblocked in `Todo`; implementation has not started.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -139,9 +140,9 @@ is the final mandatory-delivery slice. Issues #25 and #45 are merged and closed.
   0.354/0.545/0.606/0.667; maximum source span remained 2,000.
 
 ## Next candidate
-Review and merge #15, mark M5 complete, freeze that merge as the known-good
-mandatory baseline, then unblock #19 incremental indexing as the first bonus.
-Do not rerun private labels or repeat campus tuning.
+Start #19 from frozen mandatory merge `7c411ef` in a separate issue-scoped branch.
+Keep full rebuild and lexical behavior as the default; add incremental indexing only
+behind its explicit mode. Do not rerun private labels or repeat campus tuning.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

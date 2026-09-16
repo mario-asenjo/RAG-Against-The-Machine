@@ -180,14 +180,14 @@ it proves compliance but does not attribute the full cross-run improvement to th
 page-cache statement.
 
 ## D-0016 — Freeze the mandatory baseline before bonuses
-**Status:** accepted for #15.
+**Status:** accepted; mandatory baseline frozen at `7c411ef`.
 
 The mandatory baseline is Python/text exact chunking at maximum 2,000 characters,
 SQLite FTS5 BM25 with the batch-local 64 MiB page cache, exact Pydantic outputs,
 and Qwen/Qwen3-0.6B revision `c1899de289a04d12100db370d81485cdf75e47ca`
 with 2,048/128 token defaults. The final clean public rehearsal at `010e568`
 reproduced all Recall values, exercised every CLI command and kept private data
-unused. Freeze the eventual #15 merge commit as the known-good mandatory baseline.
+unused. Merged PR #49 commit `7c411ef` is the known-good mandatory baseline.
 
 Bonus work starts with #19 and must preserve this lexical path, schemas, paths,
 offsets, chunk limit, CLI behavior, public Recall and mandatory timing. A bonus may

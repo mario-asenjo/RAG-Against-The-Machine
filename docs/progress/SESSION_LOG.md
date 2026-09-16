@@ -192,6 +192,12 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   two-question answer batch and four edge equivalents passed without tracebacks.
 - Corpus, datasets, index, outputs, model weights and the unrelated roadmap prompt
   remained ignored/untracked. No private data or label evaluation was used.
+- PR #49 merged with green CI at `7c411ef`; issue #15 and milestone M5 closed.
+  Project #12 marks #15/PR #49 Done and its README now records mandatory complete.
+- Issue #19 was refined and unblocked but remains Todo/unstarted. Its contract keeps
+  full rebuild mandatory-default and scopes explicit incremental mode, SHA-256 file
+  manifests, atomic transactional updates, deterministic output, `index_revision`,
+  full-rebuild equivalence and public timing/Recall evidence.
 
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
