@@ -173,6 +173,26 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   `--help` passed; `make check` passed context, Flake8, normal mypy over 37 files,
   and 125 tests in 50.95s; strict mypy and `git diff --check` passed.
 
+## 2026-09-16 — #15 final README and defense readiness
+- Re-read the authoritative subject v2.0 and pinned the exact required first README
+  line plus every required section with one focused regression; the old harness
+  README produced the expected RED before the evaluator-facing English README.
+- Replaced scaffold prose with actual installation, architecture, chunking, BM25,
+  generation, Pydantic, CLI, benchmark, design, limitation, resource and AI-use
+  documentation. Added the requested complete Spanish defense/recode guide at
+  `docs/project/16_DEFENSE_GUIDE_ES.md`.
+- Disposable clean worktree at `010e568`: staged only supplied public archives,
+  created a fresh uv environment, passed 126-test `make check` and strict mypy,
+  then exercised every mandatory CLI flow without private data.
+- Fresh M5-F1 public result: index 3.551s for 1,969 files / 17,134 chunks; docs
+  search 2.314s; code search 2.612s; 4.926s combined. Recall remained Docs
+  0.600/0.780/0.870/0.890 and Code 0.354/0.545/0.606/0.667 at k=1/3/5/10.
+- Revalidated 199 questions, 1,990 retrieved sources, `k=10`, max span 2,000,
+  Pydantic outputs and batch identity. Model-free `k=0`, cache-only Volta answer,
+  two-question answer batch and four edge equivalents passed without tracebacks.
+- Corpus, datasets, index, outputs, model weights and the unrelated roadmap prompt
+  remained ignored/untracked. No private data or label evaluation was used.
+
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and
   generation; `RagCli.answer` enables them while the reusable adapter stays quiet.

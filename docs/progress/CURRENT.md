@@ -40,9 +40,8 @@ M5 — Mandatory readiness.
   Recall@1/3/5/10.
 
 ## Active issue
-[#25 Rehearse complete mandatory CLI from a clean checkout](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/25)
-is the final mandatory-readiness evidence slice. Issue #45's implementation is
-merged and its campus timing gate is confirmed.
+[#15 Finalize README, architecture/performance docs, AI usage, and defense rehearsal](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/15)
+is the final mandatory-delivery slice. Issues #25 and #45 are merged and closed.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -126,11 +125,23 @@ merged and its campus timing gate is confirmed.
   therefore the run proves compliance but not that page cache caused the full
   91.09% cross-run reduction. The tracked runner now re-enters and validates the
   repository root before every step to mitigate the known NFS cwd failure.
+- The final #15 README begins with the subject's exact italicized curriculum line
+  and documents the actual architecture, chunkers, BM25 retrieval, Qwen grounding,
+  setup, commands, performance, decisions, limitations, resources and AI usage.
+- `docs/project/16_DEFENSE_GUIDE_ES.md` contains the complete Spanish defense,
+  recode, demo, evidence and question/answer guide requested for later review.
+- A disposable clean checkout at `010e568` passed fresh `uv sync --locked`,
+  `make check` with 126 tests, strict mypy, all mandatory CLI flows, public Qwen
+  single/batch smokes, exact Pydantic output checks and all four edge equivalents.
+- Fresh public M5-F1 evidence: 1,969 files / 17,134 chunks indexed in 3.551s;
+  100 docs + 99 code questions searched in 4.926s combined; Recall@1/3/5/10
+  remained Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667; maximum source span remained 2,000.
 
 ## Next candidate
-Merge the #25 evidence/runner-hardening PR, close #45 and #25, then execute #15
-documentation and defense readiness. Do not rerun private labels or repeat campus
-tuning. Bonuses remain blocked until #15 is complete.
+Review and merge #15, mark M5 complete, freeze that merge as the known-good
+mandatory baseline, then unblock #19 incremental indexing as the first bonus.
+Do not rerun private labels or repeat campus tuning.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 
