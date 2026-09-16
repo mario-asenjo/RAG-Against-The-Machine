@@ -198,6 +198,10 @@ Append compact, factual entries. Do not duplicate full PR descriptions.
   full rebuild mandatory-default and scopes explicit incremental mode, SHA-256 file
   manifests, atomic transactional updates, deterministic output, `index_revision`,
   full-rebuild equivalence and public timing/Recall evidence.
+- The completed Ponytail milestone audit's delayed full result identified one more
+  README correction: only Moulinette/evaluation runs are ignored, while supplied
+  exam scripts remain untracked. It also clarified that source-free answer batches
+  open zero SQLite connections. Both documentation fixes were applied post-M5.
 
 ## 2026-09-10 — #13 single-answer Qwen progress
 - Added opt-in tqdm phases around tokenizer/config loading, model loading, and

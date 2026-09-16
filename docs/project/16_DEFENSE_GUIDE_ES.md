@@ -38,7 +38,7 @@ justificar con evidencia por qué la solución cumple los límites del subject.
 
 | Requisito | Implementación | Evidencia |
 |---|---|---|
-| Python 3.10+ | `.python-version` selecciona 3.10; `pyproject.toml` acepta >=3.10 | `uv sync --locked`, CI y mypy |
+| Python 3.10+ | `.python-version` selecciona 3.10; `pyproject.toml` acepta >=3.10 | Checkout limpio, `uv sync --locked`, CI y mypy |
 | uv | Proyecto y lockfile gestionados por uv | Instalación limpia |
 | Python Fire | `RagCli` expone todos los comandos | Smokes CLI |
 | tqdm | Indexado, búsqueda batch y generación muestran progreso en stderr | Smokes reales |

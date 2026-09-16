@@ -138,9 +138,9 @@ I cannot answer from the retrieved sources.
 
 `answer_dataset` consumes an existing `StudentSearchResults` file; it does not run
 retrieval again. It processes questions sequentially, preserves IDs, questions,
-source order and `k`, reuses one lazy Qwen instance and one SQLite connection, and
-atomically replaces the final Pydantic output only after the complete batch succeeds.
-Progress bars are written to stderr.
+source order and `k`, reuses one lazy Qwen instance and at most one lazily opened
+SQLite connection, and atomically replaces the final Pydantic output only after the
+complete batch succeeds. Progress bars are written to stderr.
 
 ## Data Models and Output
 
@@ -207,8 +207,9 @@ data/output/
 models/huggingface/
 ```
 
-All runtime datasets, indexes, outputs, evaluator tools, and model files are ignored
-by Git.
+Runtime datasets, indexes, outputs, model files, evaluation runs, and local
+Moulinette binaries are ignored by Git. Supplied exam scripts must remain untracked
+unless they are explicitly intended for submission.
 
 ### Quality gates
 
