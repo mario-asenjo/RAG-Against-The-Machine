@@ -17,6 +17,7 @@ from src.application.use_cases import (
     answer_search_result,
     build_lexical_index,
     evaluate_search_results,
+    plan_lexical_index_update,
 )
 from src.chunking import chunk_python_document, chunk_text_document
 from src.domain import (
@@ -29,11 +30,15 @@ from src.infrastructure import (
     INDEX_FILENAME,
     QwenGenerator,
     load_corpus,
+    load_index_chunks,
+    load_index_metadata,
+    load_index_state,
     load_source_texts,
     load_source_texts_from_connection,
     save_lexical_index,
     search_lexical_index,
     search_lexical_index_batch,
+    update_lexical_index,
 )
 
 
@@ -53,6 +58,7 @@ class RagCli:
         max_chunk_size: int = 2000,
         corpus_path: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed",
+        incremental: bool = False,
     ) -> str:
         """Build and atomically persist the SQLite FTS5 BM25 index."""
         chunkers: dict[str, Chunker] = {
@@ -63,26 +69,93 @@ class RagCli:
         try:
             corpus_root = Path(corpus_path)
             documents = load_corpus(corpus_root, show_progress=True)
+            index_path = Path(save_directory) / INDEX_FILENAME
+            fallback = False
+            previous_revision = 0
+            if incremental:
+                try:
+                    previous_revision = load_index_metadata(
+                        index_path
+                    ).index_revision
+                    current, existing_files, existing_counts = (
+                        load_index_state(index_path)
+                    )
+                    if current.corpus_path != corpus_root.as_posix():
+                        raise ValueError("indexed corpus path has changed")
+                    if current.max_chunk_size != max_chunk_size:
+                        raise ValueError("indexed max_chunk_size has changed")
+                    update = plan_lexical_index_update(
+                        documents,
+                        existing_files,
+                        existing_counts,
+                        load_index_chunks(index_path),
+                        chunkers,
+                        corpus_root.as_posix(),
+                        max_chunk_size,
+                        current.index_revision,
+                        show_progress=True,
+                    )
+                except (OSError, RuntimeError, ValueError, sqlite3.Error):
+                    fallback = True
+                else:
+                    if not update.has_changes:
+                        return (
+                            "Index unchanged at "
+                            f"{index_path.parent.as_posix()} "
+                            f"(revision {current.index_revision})"
+                        )
+                    existing_paths = {
+                        item.file_path for item in existing_files
+                    }
+                    added = sum(
+                        path not in existing_paths
+                        for path in update.changed_paths
+                    )
+                    changed = len(update.changed_paths) - added
+                    update_lexical_index(update, index_path)
+                    return (
+                        f"Incrementally indexed {len(update.files)} documents "
+                        f"at {index_path.parent.as_posix()}: "
+                        f"{added} added, {changed} changed, "
+                        f"{len(update.removed_paths)} deleted, "
+                        f"revision {update.metadata.index_revision}"
+                    )
+
+            index_revision = previous_revision + 1 if previous_revision else 1
+            if not fallback:
+                try:
+                    current, _, _ = load_index_state(index_path)
+                    index_revision = current.index_revision + 1
+                except (OSError, RuntimeError, ValueError, sqlite3.Error):
+                    pass
             build = build_lexical_index(
                 documents,
                 chunkers,
                 corpus_root.as_posix(),
                 max_chunk_size,
                 show_progress=True,
+                index_revision=index_revision,
             )
             index_path = save_lexical_index(
                 build,
-                Path(save_directory) / INDEX_FILENAME,
+                index_path,
                 show_progress=True,
             )
-        except (OSError, RuntimeError, UnicodeError, ValueError) as error:
+        except (
+            OSError,
+            RuntimeError,
+            UnicodeError,
+            ValueError,
+            sqlite3.Error,
+        ) as error:
             raise fire.core.FireError(str(error)) from error
 
-        return (
+        result = (
             f"Indexed {build.metadata.document_count} documents into "
             f"{build.metadata.chunk_count} chunks at "
             f"{index_path.parent.as_posix()}"
         )
+        return f"Full rebuild fallback. {result}" if fallback else result
 
     def search(
         self,

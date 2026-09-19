@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping, Sequence
 from pathlib import PurePosixPath
 
@@ -11,6 +12,7 @@ from src.application.ports.chunking import Chunker
 from src.domain import (
     LexicalIndexBuild,
     LexicalIndexMetadata,
+    IndexedFile,
     SourceChunk,
     SourceDocument,
 )
@@ -22,6 +24,7 @@ def build_lexical_index(
     corpus_path: str,
     max_chunk_size: int = 2000,
     show_progress: bool = False,
+    index_revision: int = 1,
 ) -> LexicalIndexBuild:
     """Chunk a corpus through injected strategies for lexical persistence."""
     if max_chunk_size <= 0:
@@ -46,5 +49,21 @@ def build_lexical_index(
         max_chunk_size=max_chunk_size,
         document_count=len(documents),
         chunk_count=len(chunks),
+        index_revision=index_revision,
     )
-    return LexicalIndexBuild(metadata=metadata, chunks=chunks)
+    return LexicalIndexBuild(
+        metadata=metadata,
+        chunks=chunks,
+        files=[build_indexed_file(document) for document in documents],
+    )
+
+
+def build_indexed_file(document: SourceDocument) -> IndexedFile:
+    """Hash one exact source document for lifecycle comparison."""
+    encoded = document.text.encode("utf-8")
+    return IndexedFile(
+        file_path=document.file_path,
+        content_hash=hashlib.sha256(encoded).hexdigest(),
+        byte_count=len(encoded),
+        character_count=len(document.text),
+    )

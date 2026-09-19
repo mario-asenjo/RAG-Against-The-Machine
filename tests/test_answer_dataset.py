@@ -15,6 +15,7 @@ from src.adapters import cli as cli_module
 from src.adapters.cli import RagCli
 from src.application.use_cases.answer_question import ABSTENTION_ANSWER
 from src.domain import (
+    IndexedFile,
     LexicalIndexBuild,
     LexicalIndexMetadata,
     MinimalSearchResults,
@@ -95,6 +96,15 @@ def make_index(tmp_path: Path) -> tuple[Path, list[SourceChunk]]:
             chunk_count=2,
         ),
         chunks=chunks,
+        files=[
+            IndexedFile(
+                file_path=chunk.file_path,
+                content_hash="0" * 64,
+                byte_count=len(chunk.text.encode("utf-8")),
+                character_count=len(chunk.text),
+            )
+            for chunk in chunks
+        ],
     )
     return save_lexical_index(
         build, tmp_path / "lexical_index.sqlite3"

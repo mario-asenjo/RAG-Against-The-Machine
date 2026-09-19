@@ -16,6 +16,32 @@ without reopening private labels.
 | M5-P1 | local #45 candidate | Same BM25 with 64 MiB per-connection SQLite page cache | Existing public index, max 2000 | n/a | 5.445 median (199 public questions, k=10; home Windows) | 0.870 | 0.606 | 2000 | 31.83% faster than 7.987s local median across three CLI pairs; byte-identical output; campus NFS confirmation still required |
 | M5-C3 | 6ff741a | Same BM25 with 64 MiB per-connection SQLite page cache | Campus NFS4, max 2000 | 10.172 | 8.193 (4.079 docs + 4.114 code; 200 private unanswered questions, k=10) | not rerun | not rerun | 2000 previously pinned | Mandatory timing passes with 81.807s headroom; host and dirty-runner differences prevent assigning the full 91.09% reduction to page cache |
 | M5-F1 | 010e568 | Final mandatory SQLite FTS5 BM25 | Disposable clean checkout, supplied public corpus, max 2000 | 3.551 | 4.926 (2.314 docs + 2.612 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Final public rehearsal reproduces Recall, output shape, all mandatory commands, Qwen smokes and edge behavior |
+| B1-I1 | #19 branch | Schema-v2 BM25 plus explicit file-level incremental updates | Full public corpus, SHA-256 manifest, max 2000 | 8.430 cold full; 2.527 one-file median vs 3.004 comparable full; 1.513 no-op median | 7.638 (3.676 docs + 3.961 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Mandatory output hashes/Recall unchanged; final three rounds show 15.90% median one-file gain, exact reused-slice/lifecycle/FTS validation and full-rebuild equivalence |
+
+## B1-I1 incremental indexing record
+
+- Date/branch: 2026-09-18, `feat/issue-19-incremental-indexing`.
+- Fixed public input: canonical relative `data/raw/vllm-0.10.1`, 1,969 accepted
+  files, 17,134 exact chunks, `max_chunk_size=2000`; no private data.
+- Fresh schema-v2 full build took 8.430s. An unchanged explicit incremental run took
+  2.961s without replacing SQLite or changing revision.
+- Public `k=10` search took 3.676s docs + 3.961s code = 7.638s. Output SHA-256 and
+  Recall@1/3/5/10 exactly matched the frozen mandatory baseline; maximum span stayed
+  2,000.
+- A disposable corpus copy received one changed file per round with incremental/full
+  execution order rotated after all independent-review fixes. Incremental times were
+  25.125/2.527/2.520s; full rebuilds 3.023/2.996/3.004s; no-ops
+  1.557/1.511/1.513s. Medians were 2.527/3.004/1.513s, a 15.90% incremental
+  improvement. Every canonical chunk/result matched its clean
+  full rebuild and each no-op kept revision unchanged.
+- The first final incremental observation was a 25.125s host outlier. It is retained
+  in the raw record and table; the three-run median is used rather than deleting it.
+- The 37,670,912-byte canonical artifact passed `PRAGMA integrity_check`, held 1,969
+  manifest rows (122 zero-chunk files), and had 17,134 chunk + 17,134 FTS rows.
+- An initial absolute-path run was rejected as quality evidence after correctly
+  producing absolute source paths that could not match canonical ground truth. The
+  relative-path rerun above is authoritative. Full details are in
+  `docs/project/17_INCREMENTAL_INDEXING.md`; generated traces remain ignored.
 
 ## M5-F1 final public clean-checkout rehearsal
 

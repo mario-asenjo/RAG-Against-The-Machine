@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from src.domain import (
+    IndexedFile,
     LexicalIndexBuild,
     LexicalIndexMetadata,
     SourceChunk,
@@ -52,6 +53,15 @@ def make_index(tmp_path: Path) -> Path:
             chunk_count=len(chunks),
         ),
         chunks=chunks,
+        files=[
+            IndexedFile(
+                file_path=chunk.file_path,
+                content_hash="0" * 64,
+                byte_count=len(chunk.text.encode("utf-8")),
+                character_count=len(chunk.text),
+            )
+            for chunk in chunks
+        ],
     )
     return save_lexical_index(build, tmp_path / "lexical_index.sqlite3")
 

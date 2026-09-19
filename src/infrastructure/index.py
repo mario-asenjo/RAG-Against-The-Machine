@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -11,8 +12,10 @@ from typing import Sequence
 from tqdm import tqdm
 
 from src.domain import (
+    IndexedFile,
     LexicalIndexBuild,
     LexicalIndexMetadata,
+    LexicalIndexUpdate,
     MinimalSource,
     SourceChunk,
 )
@@ -24,8 +27,15 @@ CREATE TABLE metadata (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     payload TEXT NOT NULL
 );
+CREATE TABLE files (
+    file_path TEXT PRIMARY KEY,
+    content_hash TEXT NOT NULL,
+    byte_count INTEGER NOT NULL,
+    character_count INTEGER NOT NULL
+);
 CREATE TABLE chunks (
     id INTEGER PRIMARY KEY,
+    rank_order INTEGER NOT NULL UNIQUE,
     file_path TEXT NOT NULL,
     first_character_index INTEGER NOT NULL,
     last_character_index INTEGER NOT NULL,
@@ -62,17 +72,38 @@ def save_lexical_index(
             )
             connection.executemany(
                 """
+                INSERT INTO files(
+                    file_path,
+                    content_hash,
+                    byte_count,
+                    character_count
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (
+                    (
+                        item.file_path,
+                        item.content_hash,
+                        item.byte_count,
+                        item.character_count,
+                    )
+                    for item in build.files
+                ),
+            )
+            connection.executemany(
+                """
                 INSERT INTO chunks(
                     id,
+                    rank_order,
                     file_path,
                     first_character_index,
                     last_character_index,
                     chunk_type,
                     text
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     (
+                        chunk_id,
                         chunk_id,
                         chunk.file_path,
                         chunk.first_character_index,
@@ -97,7 +128,7 @@ def save_lexical_index(
                     for chunk_id, chunk in indexed_chunks
                 ),
             )
-            connection.execute("PRAGMA user_version=1")
+            connection.execute("PRAGMA user_version=2")
             connection.commit()
         temporary_path.replace(index_path)
     except (OSError, sqlite3.Error) as error:
@@ -133,7 +164,7 @@ def load_index_chunks(index_path: Path) -> list[SourceChunk]:
                 chunk_type,
                 text
             FROM chunks
-            ORDER BY id
+            ORDER BY rank_order
             """
         ).fetchall()
     return [
@@ -146,6 +177,171 @@ def load_index_chunks(index_path: Path) -> list[SourceChunk]:
         )
         for row in rows
     ]
+
+
+def load_index_files(index_path: Path) -> list[IndexedFile]:
+    """Load the canonical persisted file manifest."""
+    _require_index(index_path)
+    with closing(sqlite3.connect(index_path)) as connection:
+        _require_schema_v2(connection)
+        rows = connection.execute(
+            """
+            SELECT file_path, content_hash, byte_count, character_count
+            FROM files
+            ORDER BY file_path
+            """
+        ).fetchall()
+    return [
+        IndexedFile(
+            file_path=row[0],
+            content_hash=row[1],
+            byte_count=row[2],
+            character_count=row[3],
+        )
+        for row in rows
+    ]
+
+
+def load_index_file_chunk_counts(index_path: Path) -> dict[str, int]:
+    """Load persisted chunk counts keyed by exact file path."""
+    _require_index(index_path)
+    with closing(sqlite3.connect(index_path)) as connection:
+        _require_schema_v2(connection)
+        rows = connection.execute(
+            """
+            SELECT file_path, count(*)
+            FROM chunks
+            GROUP BY file_path
+            """
+        ).fetchall()
+        files = connection.execute("SELECT file_path FROM files").fetchall()
+    counts = {str(row[0]): int(row[1]) for row in rows}
+    for row in files:
+        counts.setdefault(str(row[0]), 0)
+    return counts
+
+
+def load_index_state(
+    index_path: Path,
+) -> tuple[
+    LexicalIndexMetadata,
+    list[IndexedFile],
+    dict[str, int],
+]:
+    """Load one fully validated incremental-index lifecycle snapshot."""
+    _require_index(index_path)
+    with closing(sqlite3.connect(index_path)) as connection:
+        return _validate_index_state(connection)
+
+
+def update_lexical_index(
+    update: LexicalIndexUpdate,
+    index_path: Path,
+) -> Path:
+    """Apply a validated delta to a copy, then replace atomically."""
+    _require_index(index_path)
+    if not update.has_changes:
+        return index_path
+    temporary_path = index_path.with_name(f".{index_path.name}.tmp")
+    temporary_path.unlink(missing_ok=True)
+    try:
+        shutil.copy2(index_path, temporary_path)
+        with closing(sqlite3.connect(temporary_path)) as connection:
+            _require_schema_v2(connection)
+            connection.execute("BEGIN IMMEDIATE")
+            affected_paths = [*update.changed_paths, *update.removed_paths]
+            old_rows: list[tuple[int]] = []
+            for path in affected_paths:
+                old_rows.extend(
+                    connection.execute(
+                        "SELECT id FROM chunks WHERE file_path = ?",
+                        (path,),
+                    ).fetchall()
+                )
+            connection.executemany(
+                "DELETE FROM chunks_fts WHERE rowid = ?",
+                old_rows,
+            )
+            connection.executemany(
+                "DELETE FROM chunks WHERE file_path = ?",
+                ((path,) for path in affected_paths),
+            )
+
+            next_id = int(
+                connection.execute(
+                    "SELECT coalesce(max(id), 0) + 1 FROM chunks"
+                ).fetchone()[0]
+            )
+            next_rank = int(
+                connection.execute(
+                    "SELECT coalesce(max(rank_order), 0) + 1 FROM chunks"
+                ).fetchone()[0]
+            )
+            inserted = [
+                (
+                    next_id + offset,
+                    next_rank + offset,
+                    chunk.file_path,
+                    chunk.first_character_index,
+                    chunk.last_character_index,
+                    chunk.chunk_type,
+                    chunk.text,
+                )
+                for offset, chunk in enumerate(update.changed_chunks)
+            ]
+            connection.executemany(
+                """
+                INSERT INTO chunks(
+                    id,
+                    rank_order,
+                    file_path,
+                    first_character_index,
+                    last_character_index,
+                    chunk_type,
+                    text
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                inserted,
+            )
+            connection.executemany(
+                "INSERT INTO chunks_fts(rowid, text) VALUES (?, ?)",
+                ((row[0], row[6]) for row in inserted),
+            )
+            connection.execute("DELETE FROM files")
+            connection.executemany(
+                """
+                INSERT INTO files(
+                    file_path,
+                    content_hash,
+                    byte_count,
+                    character_count
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (
+                    (
+                        item.file_path,
+                        item.content_hash,
+                        item.byte_count,
+                        item.character_count,
+                    )
+                    for item in update.files
+                ),
+            )
+            _renumber_ranks(connection)
+            connection.execute(
+                "UPDATE metadata SET payload = ? WHERE id = 1",
+                (update.metadata.model_dump_json(),),
+            )
+            metadata, _, _ = _validate_index_state(connection)
+            if metadata != update.metadata:
+                raise ValueError("updated metadata does not match the plan")
+            connection.commit()
+        temporary_path.replace(index_path)
+    except (OSError, sqlite3.Error, ValueError) as error:
+        temporary_path.unlink(missing_ok=True)
+        message = f"Could not update lexical index: {error}"
+        raise RuntimeError(message) from error
+    return index_path
 
 
 def load_source_texts(
@@ -265,7 +461,7 @@ def _search_connection(
         FROM chunks_fts
         JOIN chunks ON chunks.id = chunks_fts.rowid
         WHERE chunks_fts MATCH ?
-        ORDER BY bm25(chunks_fts), chunks.id
+        ORDER BY bm25(chunks_fts), chunks.rank_order
         LIMIT ?
         """,
         (match_query, k),
@@ -284,3 +480,122 @@ def _require_index(index_path: Path) -> None:
     """Reject missing index paths without creating an empty SQLite file."""
     if not index_path.is_file():
         raise FileNotFoundError(f"Lexical index not found: {index_path}")
+
+
+def _require_schema_v2(connection: sqlite3.Connection) -> None:
+    """Reject indexes that cannot be updated safely."""
+    if connection.execute("PRAGMA user_version").fetchone() != (2,):
+        raise ValueError("incremental index schema is incompatible")
+
+
+def _renumber_ranks(connection: sqlite3.Connection) -> None:
+    """Restore canonical full-build tie order without changing FTS row IDs."""
+    connection.execute("UPDATE chunks SET rank_order = -id")
+    rows = connection.execute(
+        """
+        SELECT id
+        FROM chunks
+        ORDER BY file_path, first_character_index, last_character_index, id
+        """
+    ).fetchall()
+    connection.executemany(
+        "UPDATE chunks SET rank_order = ? WHERE id = ?",
+        ((rank, row[0]) for rank, row in enumerate(rows, start=1)),
+    )
+
+
+def _validate_index_state(
+    connection: sqlite3.Connection,
+) -> tuple[
+    LexicalIndexMetadata,
+    list[IndexedFile],
+    dict[str, int],
+]:
+    """Validate and return one complete incremental lifecycle snapshot."""
+    _require_schema_v2(connection)
+    metadata_row = connection.execute(
+        "SELECT payload FROM metadata WHERE id = 1"
+    ).fetchone()
+    if metadata_row is None:
+        raise ValueError("index metadata is missing")
+    metadata = LexicalIndexMetadata.model_validate_json(metadata_row[0])
+    file_rows = connection.execute(
+        """
+        SELECT file_path, content_hash, byte_count, character_count
+        FROM files
+        ORDER BY file_path
+        """
+    ).fetchall()
+    files = [
+        IndexedFile(
+            file_path=row[0],
+            content_hash=row[1],
+            byte_count=row[2],
+            character_count=row[3],
+        )
+        for row in file_rows
+    ]
+    count_rows = connection.execute(
+        "SELECT file_path, count(*) FROM chunks GROUP BY file_path"
+    ).fetchall()
+    counts = {str(row[0]): int(row[1]) for row in count_rows}
+    for item in files:
+        counts.setdefault(item.file_path, 0)
+    chunk_count = sum(counts.values())
+    orphan_count = int(
+        connection.execute(
+            """
+            SELECT count(*)
+            FROM chunks
+            LEFT JOIN files USING (file_path)
+            WHERE files.file_path IS NULL
+            """
+        ).fetchone()[0]
+    )
+    invalid_widths = int(
+        connection.execute(
+            """
+            SELECT count(*)
+            FROM chunks
+            JOIN files USING (file_path)
+            WHERE last_character_index <= first_character_index
+               OR first_character_index < 0
+               OR last_character_index > files.character_count
+               OR last_character_index - first_character_index > ?
+               OR length(text) != last_character_index - first_character_index
+            """,
+            (metadata.max_chunk_size,),
+        ).fetchone()[0]
+    )
+    ranks = connection.execute(
+        "SELECT rank_order, id FROM chunks ORDER BY rank_order"
+    ).fetchall()
+    canonical_ids = connection.execute(
+        """
+        SELECT id FROM chunks
+        ORDER BY file_path, first_character_index, last_character_index, id
+        """
+    ).fetchall()
+    connection.execute(
+        """
+        INSERT INTO chunks_fts(chunks_fts, rank)
+        VALUES ('integrity-check', 1)
+        """
+    )
+    integrity = connection.execute("PRAGMA integrity_check").fetchone()
+    if len(files) != metadata.document_count:
+        raise ValueError("file manifest count does not match metadata")
+    if chunk_count != metadata.chunk_count:
+        raise ValueError("chunk count does not match metadata")
+    if orphan_count:
+        raise ValueError("chunks exist outside the file manifest")
+    if invalid_widths:
+        raise ValueError("persisted chunk width is invalid")
+    expected_ranks = list(range(1, chunk_count + 1))
+    if [int(row[0]) for row in ranks] != expected_ranks:
+        raise ValueError("persisted rank order is not contiguous")
+    if [row[1] for row in ranks] != [row[0] for row in canonical_ids]:
+        raise ValueError("persisted rank order is not canonical")
+    if integrity != ("ok",):
+        raise ValueError("SQLite integrity check failed")
+    return metadata, files, counts

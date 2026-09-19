@@ -2,8 +2,10 @@
 
 from src.domain.models import (
     AnsweredQuestion,
+    IndexedFile,
     LexicalIndexBuild,
     LexicalIndexMetadata,
+    LexicalIndexUpdate,
     MinimalAnswer,
     MinimalSearchResults,
     MinimalSource,
@@ -17,8 +19,10 @@ from src.domain.models import (
 
 __all__ = [
     "AnsweredQuestion",
+    "IndexedFile",
     "LexicalIndexBuild",
     "LexicalIndexMetadata",
+    "LexicalIndexUpdate",
     "MinimalAnswer",
     "MinimalSearchResults",
     "MinimalSource",

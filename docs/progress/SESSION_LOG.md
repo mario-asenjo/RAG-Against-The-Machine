@@ -2,6 +2,37 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-18 — #19 incremental lexical indexing
+- Started from mandatory-audited `87a5c26`; preserved the unrelated CLI edit in named
+  stash `user-cli-validation-changes-do-not-publish` and kept the local roadmap prompt
+  untracked and untouched.
+- Observed RED at collection for the missing incremental lifecycle models/use case.
+  Added schema-v2 file hashes, `index_revision`, canonical rank order, explicit
+  `--incremental=True`, true no-op, changed-file-only chunking, transactional copy
+  updates, integrity validation, atomic replacement and safe visible fallback.
+- Fifteen focused tests cover lifecycle state, exact-byte no-op, zero-chunk files,
+  exact-source validation, mixed/rename equivalence, stale-term removal, invalid UTF-8,
+  SQLite/replacement failure preservation, incompatible schema, inconsistent metadata,
+  impossible bounds, complete manifest identity, missing postings and coherent
+  chunk-text/FTS corruption fallback.
+- Fresh public canonical regression retained 1,969 files / 17,134 chunks, exact frozen
+  docs/code output hashes, Recall@1/3/5/10 and 2,000 maximum span. Search took 7.638s
+  combined; integrity and chunk/FTS counts passed.
+- Three final one-file public-copy rounds measured 2.527s incremental versus 3.004s
+  comparable full rebuild median (15.90% faster) and 1.513s no-op median. Every artifact
+  matched its equivalent clean full rebuild. No private labels or campus tuning used.
+- Independent Ponytail review found and reproduced missing pre-no-op metadata/FTS
+  integrity checks plus an optional-manifest fixture shortcut. The manifest is now
+  mandatory; one validated state loader checks schema, counts, orphans, spans, ranks,
+  FTS external-content integrity and SQLite integrity before no-op/update and after
+  mutation. Follow-up reviews found missing chunk-to-manifest bounds, incomplete file
+  identity, then missing exact-slice validation for reused chunks; all now have
+  permanent regressions and trigger safe rebuild rather than a corrupt no-op.
+- Focused tests, 141-test `make check`, strict mypy over 40 files, Flake8 and
+  `git diff --check` pass after applying the review findings.
+- Final independent Ponytail-full follow-up returned `ACEPTAR` with no remaining
+  practical blocker.
+
 ## 2026-09-10 — #14 sequential answer_dataset
 - Started from merged #13 / PR #39 at `baea9a4`; protected the unrelated local
   12048/1280 budget edit in named stash `user-budget-12048-1280-do-not-publish`.
