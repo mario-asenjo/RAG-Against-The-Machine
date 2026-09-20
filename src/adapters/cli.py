@@ -40,6 +40,19 @@ from src.infrastructure import (
     search_lexical_index_batch,
     update_lexical_index,
 )
+from src.infrastructure.semantic import (
+    DEFAULT_SEMANTIC_MAX_LENGTH,
+    DEFAULT_SEMANTIC_MODEL,
+    DEFAULT_SEMANTIC_MODEL_REVISION,
+    SEMANTIC_INDEX_FILENAME,
+    MiniLmEmbedder,
+    build_semantic_index,
+    ensure_semantic_index,
+    load_semantic_index,
+    search_semantic_index,
+    search_semantic_index_batch,
+    update_semantic_index,
+)
 
 
 class RagCli:
@@ -59,8 +72,14 @@ class RagCli:
         corpus_path: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed",
         incremental: bool = False,
+        semantic: bool = False,
+        semantic_model: str = DEFAULT_SEMANTIC_MODEL,
+        semantic_model_revision: str = DEFAULT_SEMANTIC_MODEL_REVISION,
+        semantic_model_cache_directory: str = "models/huggingface",
+        semantic_max_length: int = DEFAULT_SEMANTIC_MAX_LENGTH,
+        local_files_only: bool = False,
     ) -> str:
-        """Build and atomically persist the SQLite FTS5 BM25 index."""
+        """Build canonical BM25 and optionally its semantic projection."""
         chunkers: dict[str, Chunker] = {
             ".md": chunk_text_document,
             ".py": chunk_python_document,
@@ -70,6 +89,7 @@ class RagCli:
             corpus_root = Path(corpus_path)
             documents = load_corpus(corpus_root, show_progress=True)
             index_path = Path(save_directory) / INDEX_FILENAME
+            semantic_path = Path(save_directory) / SEMANTIC_INDEX_FILENAME
             fallback = False
             previous_revision = 0
             if incremental:
@@ -84,11 +104,12 @@ class RagCli:
                         raise ValueError("indexed corpus path has changed")
                     if current.max_chunk_size != max_chunk_size:
                         raise ValueError("indexed max_chunk_size has changed")
+                    existing_chunks = load_index_chunks(index_path)
                     update = plan_lexical_index_update(
                         documents,
                         existing_files,
                         existing_counts,
-                        load_index_chunks(index_path),
+                        existing_chunks,
                         chunkers,
                         corpus_root.as_posix(),
                         max_chunk_size,
@@ -99,11 +120,32 @@ class RagCli:
                     fallback = True
                 else:
                     if not update.has_changes:
-                        return (
+                        lexical_result = (
                             "Index unchanged at "
                             f"{index_path.parent.as_posix()} "
                             f"(revision {current.index_revision})"
                         )
+                        if not semantic:
+                            return lexical_result
+                        embedder = MiniLmEmbedder(
+                            cache_directory=Path(
+                                semantic_model_cache_directory
+                            ),
+                            model_name=semantic_model,
+                            model_revision=semantic_model_revision,
+                            max_length=semantic_max_length,
+                            local_files_only=local_files_only,
+                            show_progress=True,
+                        )
+                        rebuilt = ensure_semantic_index(
+                            existing_chunks,
+                            semantic_path,
+                            current.index_revision,
+                            embedder,
+                        )
+                        action = "rebuilt" if rebuilt else "unchanged"
+                        return f"{lexical_result}; semantic index {action}"
+
                     existing_paths = {
                         item.file_path for item in existing_files
                     }
@@ -112,13 +154,64 @@ class RagCli:
                         for path in update.changed_paths
                     )
                     changed = len(update.changed_paths) - added
+                    semantic_compatible = False
+                    if semantic:
+                        embedder = MiniLmEmbedder(
+                            cache_directory=Path(
+                                semantic_model_cache_directory
+                            ),
+                            model_name=semantic_model,
+                            model_revision=semantic_model_revision,
+                            max_length=semantic_max_length,
+                            local_files_only=local_files_only,
+                            show_progress=True,
+                        )
+                        try:
+                            load_semantic_index(
+                                semantic_path,
+                                expected_source_index_revision=(
+                                    current.index_revision
+                                ),
+                                expected_model_name=embedder.model_name,
+                                expected_model_revision=(
+                                    embedder.model_revision
+                                ),
+                                expected_max_length=embedder.max_length,
+                                canonical_chunks=existing_chunks,
+                            )
+                        except (OSError, RuntimeError, ValueError):
+                            pass
+                        else:
+                            semantic_compatible = True
+
                     update_lexical_index(update, index_path)
+                    semantic_result = ""
+                    if semantic:
+                        canonical_chunks = load_index_chunks(index_path)
+                        if semantic_compatible:
+                            update_semantic_index(
+                                semantic_path,
+                                existing_chunks,
+                                canonical_chunks,
+                                update,
+                                embedder,
+                            )
+                            semantic_result = "; semantic index updated"
+                        else:
+                            build_semantic_index(
+                                canonical_chunks,
+                                semantic_path,
+                                update.metadata.index_revision,
+                                embedder,
+                            )
+                            semantic_result = "; semantic index rebuilt"
                     return (
                         f"Incrementally indexed {len(update.files)} documents "
                         f"at {index_path.parent.as_posix()}: "
                         f"{added} added, {changed} changed, "
                         f"{len(update.removed_paths)} deleted, "
                         f"revision {update.metadata.index_revision}"
+                        f"{semantic_result}"
                     )
 
             index_revision = previous_revision + 1 if previous_revision else 1
@@ -127,6 +220,17 @@ class RagCli:
                     current, _, _ = load_index_state(index_path)
                     index_revision = current.index_revision + 1
                 except (OSError, RuntimeError, ValueError, sqlite3.Error):
+                    pass
+            if semantic:
+                try:
+                    semantic_metadata, _, _ = load_semantic_index(
+                        semantic_path
+                    )
+                    index_revision = max(
+                        index_revision,
+                        semantic_metadata.source_index_revision + 1,
+                    )
+                except (OSError, RuntimeError, ValueError):
                     pass
             build = build_lexical_index(
                 documents,
@@ -141,6 +245,23 @@ class RagCli:
                 index_path,
                 show_progress=True,
             )
+            if semantic:
+                embedder = MiniLmEmbedder(
+                    cache_directory=Path(semantic_model_cache_directory),
+                    model_name=semantic_model,
+                    model_revision=semantic_model_revision,
+                    max_length=semantic_max_length,
+                    local_files_only=local_files_only,
+                    show_progress=True,
+                )
+                build_semantic_index(
+                    load_index_chunks(index_path),
+                    semantic_path,
+                    build.metadata.index_revision,
+                    embedder,
+                )
+            else:
+                semantic_path.unlink(missing_ok=True)
         except (
             OSError,
             RuntimeError,
@@ -155,6 +276,8 @@ class RagCli:
             f"{build.metadata.chunk_count} chunks at "
             f"{index_path.parent.as_posix()}"
         )
+        if semantic:
+            result = f"{result}; semantic index built"
         return f"Full rebuild fallback. {result}" if fallback else result
 
     def search(
@@ -162,14 +285,33 @@ class RagCli:
         query: str,
         k: int = 10,
         index_directory: str = "data/processed",
+        semantic: bool = False,
+        semantic_model: str = DEFAULT_SEMANTIC_MODEL,
+        semantic_model_revision: str = DEFAULT_SEMANTIC_MODEL_REVISION,
+        semantic_model_cache_directory: str = "models/huggingface",
+        semantic_max_length: int = DEFAULT_SEMANTIC_MAX_LENGTH,
+        local_files_only: bool = False,
     ) -> str:
         """Return ranked exact source locations from the persisted index."""
         try:
-            sources = search_lexical_index(
-                Path(index_directory) / INDEX_FILENAME,
-                query,
-                k,
-            )
+            lexical_path = Path(index_directory) / INDEX_FILENAME
+            if semantic:
+                embedder = MiniLmEmbedder(
+                    cache_directory=Path(semantic_model_cache_directory),
+                    model_name=semantic_model,
+                    model_revision=semantic_model_revision,
+                    max_length=semantic_max_length,
+                    local_files_only=local_files_only,
+                )
+                sources = search_semantic_index(
+                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                    lexical_path,
+                    query,
+                    k,
+                    embedder,
+                )
+            else:
+                sources = search_lexical_index(lexical_path, query, k)
         except (OSError, RuntimeError, ValueError) as error:
             raise fire.core.FireError(str(error)) from error
         return "\n".join(
@@ -184,6 +326,12 @@ class RagCli:
         k: int = 10,
         save_directory: str = "data/output/search_results/UnansweredQuestions",
         index_directory: str = "data/processed",
+        semantic: bool = False,
+        semantic_model: str = DEFAULT_SEMANTIC_MODEL,
+        semantic_model_revision: str = DEFAULT_SEMANTIC_MODEL_REVISION,
+        semantic_model_cache_directory: str = "models/huggingface",
+        semantic_max_length: int = DEFAULT_SEMANTIC_MAX_LENGTH,
+        local_files_only: bool = False,
     ) -> str:
         """Search a dataset and persist the subject's output model."""
         try:
@@ -191,12 +339,32 @@ class RagCli:
             dataset = RagDataset.model_validate_json(
                 input_path.read_text(encoding="utf-8")
             )
-            sources = search_lexical_index_batch(
-                Path(index_directory) / INDEX_FILENAME,
-                [question.question for question in dataset.rag_questions],
-                k,
-                show_progress=True,
-            )
+            queries = [question.question for question in dataset.rag_questions]
+            lexical_path = Path(index_directory) / INDEX_FILENAME
+            if semantic:
+                embedder = MiniLmEmbedder(
+                    cache_directory=Path(semantic_model_cache_directory),
+                    model_name=semantic_model,
+                    model_revision=semantic_model_revision,
+                    max_length=semantic_max_length,
+                    local_files_only=local_files_only,
+                    show_progress=True,
+                )
+                sources = search_semantic_index_batch(
+                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                    lexical_path,
+                    queries,
+                    k,
+                    embedder,
+                    show_progress=True,
+                )
+            else:
+                sources = search_lexical_index_batch(
+                    lexical_path,
+                    queries,
+                    k,
+                    show_progress=True,
+                )
             output = StudentSearchResults(
                 search_results=[
                     MinimalSearchResults(

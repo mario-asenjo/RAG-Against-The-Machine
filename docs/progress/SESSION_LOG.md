@@ -2,6 +2,29 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-20 — #17 semantic embeddings
+- Started from merged #19 at `4b850dc`; kept the unrelated roadmap prompt untracked.
+  Removed `blocked`, assigned #17, and moved Project #12 to In Progress.
+- RED failed collection because `src.infrastructure.semantic` did not exist. Added one
+  pinned raw-Transformers MiniLM CPU adapter, Pydantic metadata, atomic tensor artifact,
+  exact canonical identities, explicit index/search flags, and cosine top-k retrieval.
+- Reused #19's sole update plan and canonical SQLite chunks. Changed files invalidate
+  all vectors; unchanged files reuse exact tensor rows. No dependency, vector database,
+  hybrid fusion, alternate hashing/chunking, cache, service, or answer-path change.
+- Focused tests cover full/no-op/rebuild/update/failure/stale/search/CLI behavior,
+  pooling/normalization, exact paths/offsets, deterministic ties, and lexical fallback
+  cleanup. A semantic failure after SQLite advancement preserves the old stale artifact.
+- Public benchmark over 1,969 files / 17,134 chunks and 199 questions retained exact
+  lexical hashes and Recall. MiniLM Recall@1/3/5/10 was Docs
+  0.270/0.410/0.440/0.530 and Code 0.263/0.333/0.404/0.465 versus stronger BM25.
+- Full lexical+semantic build took 379.690s; one-file update 19.797s; no-op 5.603s;
+  artifact 27,862,262 bytes / `(17134, 384)`. No private data or campus run was used.
+- Independent reviews found two real lifecycle/ranking gaps: same-number stale semantic
+  state after corrupt lexical fallback and nondeterministic tied `topk`. Lexical-only
+  full builds now remove the projection, and top-k boundary ties use canonical order.
+- Fresh final gates: 87 focused lexical/semantic/answer/README tests; `make check` with
+  159 tests; strict mypy over 42 files; Flake8, context and `git diff --check` passed.
+
 ## 2026-09-18 — #19 incremental lexical indexing
 - Started from mandatory-audited `87a5c26`; preserved the unrelated CLI edit in named
   stash `user-cli-validation-changes-do-not-publish` and kept the local roadmap prompt

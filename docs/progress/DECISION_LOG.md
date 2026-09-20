@@ -208,3 +208,23 @@ Canonical `rank_order`, derived from path and source spans, replaces mutable SQL
 ID as the BM25 tie-break. This preserves exact equivalence with a clean full rebuild
 without renumbering FTS row IDs. Rename remains delete plus add; watchers, concurrency,
 migrations, semantic data and persistent query caching remain outside #19.
+
+## D-0018 — Semantic is an atomic projection over canonical SQLite chunks
+**Status:** accepted for #17.
+
+BM25 and full lexical indexing remain the mandatory default. Explicit semantic mode
+uses pinned `sentence-transformers/all-MiniLM-L6-v2` through existing torch and
+Transformers CPU dependencies, with attention-mask mean pooling, 256-token truncation,
+float32 output and L2 normalization. No sentence-transformers dependency, vector
+database, service, hybrid fusion, or second chunk/change lifecycle is added.
+
+`files + chunks` remain canonical, `chunks_fts` is the lexical projection, and one
+atomic `semantic_index.pt` is the semantic projection. It stores only normalized
+embeddings, exact ordered chunk identities, and validated model/count/source-revision
+metadata. Incremental semantic updates consume #19's existing plan, invalidate complete
+changed files, reuse unchanged-file rows and embed only new chunks. Missing, stale or
+incompatible semantic state rebuilds from SQLite; stale revision/identity blocks search.
+
+Public standalone MiniLM Recall is lower than BM25 for docs and code, and the measured
+optional full build took 379.690s on this host. Semantic therefore remains explicit and
+does not alter mandatory defaults; #18 may evaluate hybrid fusion separately.
