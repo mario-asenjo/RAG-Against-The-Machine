@@ -193,3 +193,18 @@ Bonus work starts with #19 and must preserve this lexical path, schemas, paths,
 offsets, chunk limit, CLI behavior, public Recall and mandatory timing. A bonus may
 add an explicit mode or lifecycle capability, but it must not silently redefine
 the mandatory default or use private labels for development.
+
+## D-0017 — Incremental lexical lifecycle uses content identity and copy-update
+**Status:** accepted for #19.
+
+Full rebuild remains the default and `--incremental=True` is explicit. Schema v2
+persists exact-path SHA-256 file identities and a monotonic `index_revision`; mtime is
+not a correctness signal. An unchanged corpus is a byte-stable no-op. Changed updates
+copy the live SQLite artifact beside itself, mutate and validate the copy in one
+transaction, then atomically replace the live index. Any failure leaves the prior live
+artifact intact, while incompatible lifecycle state visibly falls back to full rebuild.
+
+Canonical `rank_order`, derived from path and source spans, replaces mutable SQLite row
+ID as the BM25 tie-break. This preserves exact equivalence with a clean full rebuild
+without renumbering FTS row IDs. Rename remains delete plus add; watchers, concurrency,
+migrations, semantic data and persistent query caching remain outside #19.

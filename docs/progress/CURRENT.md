@@ -1,8 +1,8 @@
 # Current project state
 
 ## Milestone
-M5 — Mandatory readiness complete at merged baseline `7c411ef`.
-Next milestone: Bonus — Optional enhancements.
+Bonus — Optional enhancements. Mandatory readiness remains frozen at merged baseline
+`7c411ef`.
 
 ## Verified
 - Subject/exam/moulinette constraints have been distilled into `docs/project/`.
@@ -41,8 +41,9 @@ Next milestone: Bonus — Optional enhancements.
   Recall@1/3/5/10.
 
 ## Active issue
-No implementation issue is active. [#19 Bonus: support incremental index updates](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/19)
-is refined and unblocked in `Todo`; implementation has not started.
+[#19 Bonus: support incremental index updates](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/19)
+is implemented on `feat/issue-19-incremental-indexing` and awaiting review. Full
+rebuild remains the default; incremental indexing is explicit.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -138,11 +139,25 @@ is refined and unblocked in `Todo`; implementation has not started.
   100 docs + 99 code questions searched in 4.926s combined; Recall@1/3/5/10
   remained Docs 0.600/0.780/0.870/0.890 and Code
   0.354/0.545/0.606/0.667; maximum source span remained 2,000.
+- #19 adds a schema-v2 SHA-256 file manifest, monotonic `index_revision`, canonical
+  `rank_order`, true no-op detection, changed-file-only chunking, transactional copy
+  updates, integrity validation, atomic replacement and visible full-rebuild fallback.
+- Fifteen focused incremental regressions cover manifest/revision, zero-chunk files,
+  exact-byte no-op, changed-file-only work, exact source slices, mixed add/change /
+  delete/rename equivalence, invalid UTF-8, SQLite/replacement failures and schema
+  fallback, including logical metadata, impossible source bounds, complete file
+  identity and coherent chunk-text/FTS corruption. Full `make check`, strict mypy and
+  Flake8 pass with 141 tests.
+- Fresh public #19 regression: 1,969 files / 17,134 chunks; full build 8.430s,
+  no-op 2.961s, docs/code search 7.638s combined, unchanged output hashes and Recall.
+  Three final one-file rounds measured 2.527s incremental versus 3.004s comparable
+  full rebuild median (15.90% faster), with 1.513s no-op median and exact full-build
+  equivalence. See `docs/project/17_INCREMENTAL_INDEXING.md`.
 
 ## Next candidate
-Start #19 from frozen mandatory merge `7c411ef` in a separate issue-scoped branch.
-Keep full rebuild and lexical behavior as the default; add incremental indexing only
-behind its explicit mode. Do not rerun private labels or repeat campus tuning.
+After #19 is merged, start #17 semantic retrieval from updated `main`. Reuse the
+file manifest and `index_revision`, keep lexical retrieval as the default, and use
+only public evidence. Do not rerun private labels or repeat campus tuning.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

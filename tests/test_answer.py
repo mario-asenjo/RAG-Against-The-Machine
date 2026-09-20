@@ -18,6 +18,7 @@ from src.application.use_cases.answer_question import (
     answer_search_result,
 )
 from src.domain import (
+    IndexedFile,
     LexicalIndexBuild,
     LexicalIndexMetadata,
     MinimalSearchResults,
@@ -114,6 +115,15 @@ def make_answer_index(tmp_path: Path) -> tuple[Path, list[SourceChunk]]:
             chunk_count=len(chunks),
         ),
         chunks=chunks,
+        files=[
+            IndexedFile(
+                file_path=path,
+                content_hash="0" * 64,
+                byte_count=0,
+                character_count=0,
+            )
+            for path in sorted({chunk.file_path for chunk in chunks})
+        ],
     )
     return save_lexical_index(
         build, tmp_path / "lexical_index.sqlite3"

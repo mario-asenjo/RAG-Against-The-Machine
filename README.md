@@ -93,8 +93,8 @@ context without inventing overlap or rewriting whitespace.
 The mandatory retriever uses SQLite FTS5 with the `unicode61` tokenizer and native
 BM25 ranking. Query words are extracted as Unicode word tokens and converted into
 quoted FTS terms joined with `OR`, which prevents punctuation from becoming FTS
-syntax. Results are ordered by BM25 score and then stable chunk ID for deterministic
-ties.
+syntax. Results are ordered by BM25 score and then canonical `rank_order` for
+deterministic ties across full and incremental builds.
 
 Single-query search opens one SQLite connection. Dataset search reuses one warm
 connection for all questions and requests a demand-driven 64 MiB SQLite page cache:
@@ -106,6 +106,21 @@ PRAGMA cache_size=-65536
 This is an in-memory per-connection SQLite page cache for distinct FTS queries. It is
 not a persistent query-result cache and creates no invalidation problem. Ranking,
 paths, offsets, and JSON output are unchanged by the setting.
+
+### Incremental indexing bonus
+
+Full rebuild remains the default. `index --incremental=True` enables an explicit
+file-level update path over schema-v2 indexes. The persisted file manifest records
+canonical path, SHA-256 content hash, byte/character counts, and a monotonic
+`index_revision`.
+
+An unchanged corpus is a true no-op: the SQLite bytes and revision remain unchanged.
+Added and content-changed files alone are re-chunked; deleted/changed stale chunks and
+FTS rows are removed. Rename is naturally delete plus add. Updates run transactionally
+on a sibling copy, validate counts, widths, FTS rows and SQLite integrity, then replace
+the live index atomically. Incompatible lifecycle metadata triggers a visible safe full
+rebuild. Canonical `rank_order` preserves the mandatory BM25 tie order independently
+of mutable SQLite row IDs.
 
 The evaluator counts a source when the path matches exactly and the retrieved and
 expected ranges overlap above its IoU threshold. Consequently, the project preserves
@@ -232,6 +247,16 @@ uv run python -m src index \
   --max_chunk_size 2000
 ```
 
+### Update an existing compatible index incrementally
+
+```bash
+uv run python -m src index \
+  --corpus_path data/raw/vllm-0.10.1 \
+  --save_directory data/processed \
+  --max_chunk_size 2000 \
+  --incremental=True
+```
+
 ### Search one question
 
 ```bash
@@ -337,6 +362,21 @@ that generation accounted for roughly 91-97% of answer-batch wall time. Retrieva
 source hydration, and prompt fitting were not meaningful generation bottlenecks.
 No answer length was reduced to improve timing.
 
+Incremental-index evidence on a disposable full public corpus copy used three
+rotated one-file changes:
+
+| Operation | Median time | Comparison |
+|---|---:|---:|
+| Full rebuild after change | 3.004 s | baseline |
+| One-file incremental update | 2.527 s | 15.90% faster |
+| Unchanged incremental no-op | 1.513 s | no rewrite/revision change |
+
+Every incremental index matched a clean full rebuild in canonical chunks and
+byte-identical docs/code search JSON. A fresh canonical-path public run preserved
+Docs Recall@1/3/5/10 at 0.600/0.780/0.870/0.890 and Code at
+0.354/0.545/0.606/0.667. Timings are host/filesystem-specific; generated benchmark
+artifacts remain ignored.
+
 ## Design Decisions
 
 - Use exact original text and half-open spans as the central correctness invariant.
@@ -344,6 +384,9 @@ No answer length was reduced to improve timing.
 - Start with the mandatory lexical method and keep BM25 as the stable default.
 - Use standard-library SQLite FTS5 rather than adding a search service.
 - Build a complete temporary index and replace the destination atomically.
+- Keep full rebuild as the mandatory default and incremental updates explicit.
+- Use content hashes rather than mtime as the correctness identity.
+- Preserve deterministic ranking with canonical order separate from SQLite row ID.
 - Reuse one warm SQLite connection for dataset search.
 - Expand only the batch connection's page cache after profiling showed FTS execution
   dominated retrieval time.
@@ -371,8 +414,8 @@ No answer length was reduced to improve timing.
   when retrieval evidence is weak, even though the prompt requires grounding.
 - The operational prompt budget is conservative and does not claim that every host can
   use the model's maximum architectural context.
-- Semantic retrieval, hybrid ranking, incremental indexing, persistent query caching,
-  and HTTP access are bonus work and are not described as implemented features.
+- Semantic retrieval, hybrid ranking, persistent query caching, and HTTP access remain
+  unimplemented bonus work. Incremental indexing is implemented as an optional mode.
 
 ## Resources
 

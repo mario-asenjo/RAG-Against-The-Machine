@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from src.domain import (
     AnsweredQuestion,
+    IndexedFile,
     LexicalIndexBuild,
     LexicalIndexMetadata,
     MinimalAnswer,
@@ -82,9 +83,15 @@ def test_lexical_index_build_rejects_stale_chunk_count() -> None:
         chunk_type="text",
         text="vLLM",
     )
+    file = IndexedFile(
+        file_path=chunk.file_path,
+        content_hash="0" * 64,
+        byte_count=4,
+        character_count=4,
+    )
 
     with pytest.raises(ValidationError, match="chunk_count"):
-        LexicalIndexBuild(metadata=metadata, chunks=[chunk])
+        LexicalIndexBuild(metadata=metadata, chunks=[chunk], files=[file])
 
 
 def test_lexical_index_metadata_rejects_size_above_subject_cap() -> None:
@@ -113,9 +120,15 @@ def test_lexical_index_build_rejects_chunk_above_configured_size() -> None:
         chunk_type="text",
         text="vLLM!",
     )
+    file = IndexedFile(
+        file_path=chunk.file_path,
+        content_hash="0" * 64,
+        byte_count=5,
+        character_count=5,
+    )
 
     with pytest.raises(ValidationError, match="max_chunk_size"):
-        LexicalIndexBuild(metadata=metadata, chunks=[chunk])
+        LexicalIndexBuild(metadata=metadata, chunks=[chunk], files=[file])
 
 
 def test_dataset_accepts_unanswered_and_answered_questions() -> None:

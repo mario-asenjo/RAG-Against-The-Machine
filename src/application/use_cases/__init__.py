@@ -12,6 +12,7 @@ from src.application.use_cases.evaluate_recall import (
     StudentDataError,
     evaluate_search_results,
 )
+from src.application.use_cases.update_index import plan_lexical_index_update
 
 __all__ = [
     "ABSTENTION_ANSWER",
@@ -22,4 +23,5 @@ __all__ = [
     "answer_search_result",
     "build_lexical_index",
     "evaluate_search_results",
+    "plan_lexical_index_update",
 ]

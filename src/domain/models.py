@@ -51,12 +51,22 @@ class SourceChunk(MinimalSource):
 class LexicalIndexMetadata(BaseModel):
     """Stable metadata persisted with the lexical retrieval index."""
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     retrieval_method: Literal["sqlite-fts5-bm25"] = "sqlite-fts5-bm25"
     corpus_path: str
     max_chunk_size: int = Field(gt=0, le=2000)
     document_count: int = Field(ge=0)
     chunk_count: int = Field(ge=0)
+    index_revision: int = Field(default=1, ge=1)
+
+
+class IndexedFile(BaseModel):
+    """Content identity for one accepted corpus file."""
+
+    file_path: str
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    byte_count: int = Field(ge=0)
+    character_count: int = Field(ge=0)
 
 
 class LexicalIndexBuild(BaseModel):
@@ -64,6 +74,7 @@ class LexicalIndexBuild(BaseModel):
 
     metadata: LexicalIndexMetadata
     chunks: list[SourceChunk]
+    files: list[IndexedFile]
 
     @model_validator(mode="after")
     def validate_chunks(self) -> "LexicalIndexBuild":
@@ -75,6 +86,50 @@ class LexicalIndexBuild(BaseModel):
             for chunk in self.chunks
         ):
             raise ValueError("chunk text must not exceed max_chunk_size")
+        if self.metadata.document_count != len(self.files):
+            raise ValueError("document_count must match the file manifest")
+        if len({item.file_path for item in self.files}) != len(self.files):
+            raise ValueError("file manifest paths must be unique")
+        file_paths = {item.file_path for item in self.files}
+        if any(chunk.file_path not in file_paths for chunk in self.chunks):
+            raise ValueError("every chunk must belong to the file manifest")
+        return self
+
+
+class LexicalIndexUpdate(BaseModel):
+    """Validated delta between a persisted index and the current corpus."""
+
+    metadata: LexicalIndexMetadata
+    files: list[IndexedFile]
+    changed_paths: list[str]
+    removed_paths: list[str]
+    changed_chunks: list[SourceChunk]
+    reused_file_count: int = Field(ge=0)
+
+    @property
+    def has_changes(self) -> bool:
+        """Return whether persistence must replace the existing index."""
+        return bool(self.changed_paths or self.removed_paths)
+
+    @model_validator(mode="after")
+    def validate_update(self) -> "LexicalIndexUpdate":
+        """Keep delta paths and final aggregate metadata coherent."""
+        file_paths = [item.file_path for item in self.files]
+        if self.metadata.document_count != len(file_paths):
+            raise ValueError("document_count must match the update manifest")
+        if len(set(file_paths)) != len(file_paths):
+            raise ValueError("update manifest paths must be unique")
+        if any(path not in file_paths for path in self.changed_paths):
+            raise ValueError("changed paths must exist in the final manifest")
+        if any(path in file_paths for path in self.removed_paths):
+            raise ValueError(
+                "removed paths must not exist in the final manifest"
+            )
+        if any(
+            chunk.file_path not in self.changed_paths
+            for chunk in self.changed_chunks
+        ):
+            raise ValueError("changed chunks must belong to changed paths")
         return self
 
 
