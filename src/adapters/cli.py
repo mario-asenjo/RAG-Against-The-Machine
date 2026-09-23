@@ -17,6 +17,7 @@ from src.application.use_cases import (
     answer_search_result,
     build_lexical_index,
     evaluate_search_results,
+    fuse_ranked_sources,
     plan_lexical_index_update,
 )
 from src.chunking import chunk_python_document, chunk_text_document
@@ -286,6 +287,7 @@ class RagCli:
         k: int = 10,
         index_directory: str = "data/processed",
         semantic: bool = False,
+        hybrid: bool = False,
         semantic_model: str = DEFAULT_SEMANTIC_MODEL,
         semantic_model_revision: str = DEFAULT_SEMANTIC_MODEL_REVISION,
         semantic_model_cache_directory: str = "models/huggingface",
@@ -294,8 +296,12 @@ class RagCli:
     ) -> str:
         """Return ranked exact source locations from the persisted index."""
         try:
+            if semantic and hybrid:
+                raise ValueError(
+                    "semantic and hybrid modes are mutually exclusive"
+                )
             lexical_path = Path(index_directory) / INDEX_FILENAME
-            if semantic:
+            if semantic or hybrid:
                 embedder = MiniLmEmbedder(
                     cache_directory=Path(semantic_model_cache_directory),
                     model_name=semantic_model,
@@ -303,6 +309,25 @@ class RagCli:
                     max_length=semantic_max_length,
                     local_files_only=local_files_only,
                 )
+            if hybrid:
+                lexical_sources = search_lexical_index(
+                    lexical_path,
+                    query,
+                    k,
+                )
+                semantic_sources = search_semantic_index(
+                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                    lexical_path,
+                    query,
+                    k,
+                    embedder,
+                )
+                sources = fuse_ranked_sources(
+                    lexical_sources,
+                    semantic_sources,
+                    k,
+                )
+            elif semantic:
                 sources = search_semantic_index(
                     Path(index_directory) / SEMANTIC_INDEX_FILENAME,
                     lexical_path,
@@ -327,6 +352,7 @@ class RagCli:
         save_directory: str = "data/output/search_results/UnansweredQuestions",
         index_directory: str = "data/processed",
         semantic: bool = False,
+        hybrid: bool = False,
         semantic_model: str = DEFAULT_SEMANTIC_MODEL,
         semantic_model_revision: str = DEFAULT_SEMANTIC_MODEL_REVISION,
         semantic_model_cache_directory: str = "models/huggingface",
@@ -335,13 +361,17 @@ class RagCli:
     ) -> str:
         """Search a dataset and persist the subject's output model."""
         try:
+            if semantic and hybrid:
+                raise ValueError(
+                    "semantic and hybrid modes are mutually exclusive"
+                )
             input_path = Path(dataset_path)
             dataset = RagDataset.model_validate_json(
                 input_path.read_text(encoding="utf-8")
             )
             queries = [question.question for question in dataset.rag_questions]
             lexical_path = Path(index_directory) / INDEX_FILENAME
-            if semantic:
+            if semantic or hybrid:
                 embedder = MiniLmEmbedder(
                     cache_directory=Path(semantic_model_cache_directory),
                     model_name=semantic_model,
@@ -350,6 +380,29 @@ class RagCli:
                     local_files_only=local_files_only,
                     show_progress=True,
                 )
+            if hybrid:
+                lexical_sources = search_lexical_index_batch(
+                    lexical_path,
+                    queries,
+                    k,
+                    show_progress=True,
+                )
+                semantic_sources = search_semantic_index_batch(
+                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                    lexical_path,
+                    queries,
+                    k,
+                    embedder,
+                    show_progress=True,
+                )
+                sources = [
+                    fuse_ranked_sources(lexical, semantic, k)
+                    for lexical, semantic in zip(
+                        lexical_sources,
+                        semantic_sources,
+                    )
+                ]
+            elif semantic:
                 sources = search_semantic_index_batch(
                     Path(index_directory) / SEMANTIC_INDEX_FILENAME,
                     lexical_path,
