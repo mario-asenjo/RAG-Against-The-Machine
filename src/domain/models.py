@@ -133,6 +133,19 @@ class LexicalIndexUpdate(BaseModel):
         return self
 
 
+class SemanticIndexMetadata(BaseModel):
+    """Validated configuration and lifecycle identity for embeddings."""
+
+    schema_version: Literal[1] = 1
+    model_name: str
+    model_revision: str
+    pooling: Literal["attention-mask-mean-l2"] = "attention-mask-mean-l2"
+    max_length: int = Field(gt=0)
+    embedding_dimension: int = Field(gt=0)
+    chunk_count: int = Field(ge=0)
+    source_index_revision: int = Field(ge=1)
+
+
 class UnansweredQuestion(BaseModel):
     """A dataset question before retrieval or answer generation."""
 

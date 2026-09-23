@@ -17,6 +17,26 @@ without reopening private labels.
 | M5-C3 | 6ff741a | Same BM25 with 64 MiB per-connection SQLite page cache | Campus NFS4, max 2000 | 10.172 | 8.193 (4.079 docs + 4.114 code; 200 private unanswered questions, k=10) | not rerun | not rerun | 2000 previously pinned | Mandatory timing passes with 81.807s headroom; host and dirty-runner differences prevent assigning the full 91.09% reduction to page cache |
 | M5-F1 | 010e568 | Final mandatory SQLite FTS5 BM25 | Disposable clean checkout, supplied public corpus, max 2000 | 3.551 | 4.926 (2.314 docs + 2.612 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Final public rehearsal reproduces Recall, output shape, all mandatory commands, Qwen smokes and edge behavior |
 | B1-I1 | #19 branch | Schema-v2 BM25 plus explicit file-level incremental updates | Full public corpus, SHA-256 manifest, max 2000 | 8.430 cold full; 2.527 one-file median vs 3.004 comparable full; 1.513 no-op median | 7.638 (3.676 docs + 3.961 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Mandatory output hashes/Recall unchanged; final three rounds show 15.90% median one-file gain, exact reused-slice/lifecycle/FTS validation and full-rebuild equivalence |
+| B2-S1 | #17 branch | Optional all-MiniLM-L6-v2 cosine; BM25 remains default | Same canonical 17,134 chunks, 384-d normalized tensor | 379.690 full lexical+semantic; 19.797 one-file update; 5.603 no-op | 14.082 semantic vs 3.887 lexical (199 public questions, k=10) | 0.440 semantic / 0.870 lexical | 0.404 semantic / 0.606 lexical | 2000 | 27,862,262-byte artifact; standalone semantic underperforms BM25, so no default change or tuning |
+
+## B2-S1 semantic retrieval record
+
+- Date/branch: 2026-09-20, `feat/issue-17-semantic-embeddings`.
+- Fixed public input: canonical relative `data/raw/vllm-0.10.1`, 1,969 files,
+  17,134 canonical chunks, 100 docs + 99 code questions, `k=10`; no private data.
+- Pinned MiniLM revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, CPU
+  float32, attention-mask mean pooling, L2 normalization, max length 256.
+- BM25 Recall@1/3/5/10: Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667. Search took 1.819s + 2.069s = 3.887s.
+- Semantic Recall@1/3/5/10: Docs 0.270/0.410/0.440/0.530 and Code
+  0.263/0.333/0.404/0.465. Final post-review search took
+  7.077s + 7.005s = 14.082s.
+- Full lexical+semantic construction took 379.690s. One changed-file semantic update
+  took 19.797s and a validated no-op took 5.603s. The artifact was 27,862,262 bytes
+  with shape `(17134, 384)`.
+- Lexical docs/code output SHA-256 values remained exactly frozen. The optional full
+  semantic timing exceeds 300s on this host, but the mandatory lexical-only default
+  and its timing gate are unchanged. See `docs/project/18_SEMANTIC_EMBEDDINGS.md`.
 
 ## B1-I1 incremental indexing record
 

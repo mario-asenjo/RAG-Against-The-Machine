@@ -153,11 +153,29 @@ rebuild remains the default; incremental indexing is explicit.
   Three final one-file rounds measured 2.527s incremental versus 3.004s comparable
   full rebuild median (15.90% faster), with 1.513s no-op median and exact full-build
   equivalence. See `docs/project/17_INCREMENTAL_INDEXING.md`.
+- #17 adds explicit `--semantic=True` indexing/search over the same canonical SQLite
+  chunks while preserving BM25 as the default. The pinned MiniLM adapter uses raw
+  torch/Transformers CPU mean pooling and L2 normalization; no dependency was added.
+- One atomic `semantic_index.pt` stores 17,134 normalized 384-d float32 rows plus exact
+  path/offset identities and validated model/count/source-revision metadata without
+  duplicating text. Stale revisions or non-canonical identities block search.
+- Incremental semantic updates consume #19's one delta, reuse unchanged-file vectors,
+  invalidate whole changed/deleted files, and embed only new changed/added chunks.
+  Missing/stale/incompatible semantic state rebuilds only that projection on lexical
+  no-op; failed semantic persistence preserves the prior detectably stale artifact.
+- Fresh public comparison: BM25 remains Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667 at Recall@1/3/5/10. MiniLM cosine measured Docs
+  0.270/0.410/0.440/0.530 and Code 0.263/0.333/0.404/0.465, so no default change.
+- Full lexical+semantic build took 379.690s; one-file update 19.797s; no-op 5.603s;
+  artifact 27,862,262 bytes. Optional full build exceeds 300s on this host, while the
+  unchanged mandatory lexical default retains its prior passing evidence.
+- Fresh final gates: `make check` passes with 159 tests; strict mypy, Flake8, context
+  validation, focused lexical/semantic suites, and `git diff --check` pass.
 
 ## Next candidate
-After #19 is merged, start #17 semantic retrieval from updated `main`. Reuse the
-file manifest and `index_revision`, keep lexical retrieval as the default, and use
-only public evidence. Do not rerun private labels or repeat campus tuning.
+After #17 is reviewed and merged, #18 may combine the measured lexical and semantic
+signals. Keep hybrid explicit and evidence-driven; do not replace the stronger BM25
+default without public results. Do not rerun private labels or campus tuning.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

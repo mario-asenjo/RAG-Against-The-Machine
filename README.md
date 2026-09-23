@@ -36,6 +36,7 @@ Python Fire CLI (src/adapters/cli.py)
         +--> infrastructure adapters
         |      - exact corpus loading
         |      - SQLite FTS5 persistence and BM25 search
+        |      - optional MiniLM tensor persistence and cosine search
         |      - Qwen/Transformers generation
         |
         +--> Pydantic domain contracts
@@ -55,11 +56,12 @@ Pipeline flow:
 2. Read exact UTF-8 text while preserving newline characters.
 3. Chunk each document with the strategy selected by its suffix.
 4. Persist exact chunks and metadata in `data/processed/lexical_index.sqlite3`.
-5. Tokenize a query safely and rank matching chunks with SQLite FTS5 BM25.
-6. Return exact file paths and half-open character ranges.
-7. Hydrate selected source text by exact path and offsets.
-8. Fit a ranked prefix of complete chunks into the Qwen prompt budget.
-9. Generate answer text and serialize only the required Pydantic wrapper.
+5. Optionally project those same canonical chunks into `semantic_index.pt`.
+6. Rank with default BM25 or explicit normalized MiniLM cosine search.
+7. Return exact file paths and half-open character ranges.
+8. Hydrate selected source text by exact path and offsets.
+9. Fit a ranked prefix of complete chunks into the Qwen prompt budget.
+10. Generate answer text and serialize only the required Pydantic wrapper.
 
 ## Chunking Strategy
 
@@ -122,6 +124,28 @@ the live index atomically. Incompatible lifecycle metadata triggers a visible sa
 rebuild. Canonical `rank_order` preserves the mandatory BM25 tie order independently
 of mutable SQLite row IDs.
 
+### Semantic embeddings bonus
+
+Semantic mode is explicit; lexical BM25 remains the unchanged default. The pinned
+`sentence-transformers/all-MiniLM-L6-v2` model runs through the installed Transformers
+and torch CPU stack, using attention-mask mean pooling and L2 normalization. No
+`sentence-transformers` package or vector database is required.
+
+`data/processed/semantic_index.pt` is one atomically replaced torch artifact. It
+contains a normalized float32 tensor, exact path/offset identities in canonical SQLite
+chunk order, and Pydantic-validated schema/model/dimension/count/source-revision
+metadata. It does not duplicate chunk text. Search rejects an artifact whose
+`source_index_revision` or identities differ from the canonical SQLite store and ranks
+with cosine dot products plus `torch.topk`, using canonical order for exact ties.
+
+`index --semantic=True` builds both projections. With `--incremental=True`, the one
+existing lexical update plan remains the only change detector: unchanged-file vectors
+are reused, while every vector for changed/deleted files is invalidated and all new
+chunks from changed/added files are embedded. Missing, stale, or incompatible semantic
+state rebuilds only the semantic projection after a lexical no-op. Semantic writes use
+a sibling temporary file, so a failure leaves the prior artifact intact and detectably
+stale if SQLite has already advanced.
+
 The evaluator counts a source when the path matches exactly and the retrieved and
 expected ranges overlap above its IoU threshold. Consequently, the project preserves
 the complete corpus prefix, for example:
@@ -178,9 +202,9 @@ from `StudentSearchResultsAndAnswer`. The model, not Qwen, owns JSON structure.
 - Python 3.10 or later; `.python-version` selects 3.10.
 - `uv` available on `PATH`.
 - A Python build with SQLite FTS5 support.
-- Enough disk space for dependencies, the vLLM corpus, the SQLite index, and the
-  approximately 1.5 GB Qwen model snapshot.
-- Network access for the first Qwen download, or a pre-populated model cache.
+- Enough disk space for dependencies, the vLLM corpus, indexes, and the Qwen and
+  optional MiniLM model snapshots.
+- Network access for first model downloads, or a pre-populated model cache.
 
 ### Install dependencies
 
@@ -257,6 +281,24 @@ uv run python -m src index \
   --incremental=True
 ```
 
+### Build or update the optional semantic projection
+
+```bash
+uv run python -m src index \
+  --corpus_path data/raw/vllm-0.10.1 \
+  --save_directory data/processed \
+  --semantic=True \
+  --semantic_model_cache_directory models/huggingface \
+  --local_files_only=True
+
+uv run python -m src index \
+  --corpus_path data/raw/vllm-0.10.1 \
+  --save_directory data/processed \
+  --incremental=True \
+  --semantic=True \
+  --local_files_only=True
+```
+
 ### Search one question
 
 ```bash
@@ -275,6 +317,9 @@ uv run python -m src search_dataset \
   --save_directory data/output/search_results/UnansweredQuestions \
   --k 10
 ```
+
+Add `--semantic=True --local_files_only=True` to `search` or `search_dataset` to
+select the semantic projection. Omitting the flag preserves BM25 exactly.
 
 ### Evaluate public retrieval locally
 
@@ -377,6 +422,21 @@ Docs Recall@1/3/5/10 at 0.600/0.780/0.870/0.890 and Code at
 0.354/0.545/0.606/0.667. Timings are host/filesystem-specific; generated benchmark
 artifacts remain ignored.
 
+Public issue #17 evidence used the same 1,969 files, 17,134 chunks, 100 documentation
+questions, and 99 code questions without private data:
+
+| Method | Dataset | Recall@1 | Recall@3 | Recall@5 | Recall@10 | Search |
+|---|---|---:|---:|---:|---:|---:|
+| BM25 | Documentation | 0.600 | 0.780 | 0.870 | 0.890 | 1.819 s |
+| BM25 | Code | 0.354 | 0.545 | 0.606 | 0.667 | 2.069 s |
+| MiniLM cosine | Documentation | 0.270 | 0.410 | 0.440 | 0.530 | 7.077 s |
+| MiniLM cosine | Code | 0.263 | 0.333 | 0.404 | 0.465 | 7.005 s |
+
+The full lexical plus semantic build took 379.690 s on this Windows CPU host. A
+one-file semantic incremental update took 19.797 s, a validated semantic no-op took
+5.603 s, and the artifact was 27,862,262 bytes with shape `(17134, 384)`. These
+host-specific bonus timings do not alter the mandatory default's <=300 s lexical gate.
+
 ## Design Decisions
 
 - Use exact original text and half-open spans as the central correctness invariant.
@@ -387,6 +447,8 @@ artifacts remain ignored.
 - Keep full rebuild as the mandatory default and incremental updates explicit.
 - Use content hashes rather than mtime as the correctness identity.
 - Preserve deterministic ranking with canonical order separate from SQLite row ID.
+- Keep embeddings as a second atomic projection over canonical SQLite chunks rather
+  than introducing another chunk store, change detector, or vector database.
 - Reuse one warm SQLite connection for dataset search.
 - Expand only the batch connection's page cache after profiling showed FTS execution
   dominated retrieval time.
@@ -405,6 +467,9 @@ artifacts remain ignored.
   chunker uses exact line-start character offsets instead.
 - Natural-language questions and code identifiers do not always share vocabulary;
   lexical BM25 therefore has a lower code Recall@5 than documentation Recall@5.
+- Standalone MiniLM cosine retrieval underperformed BM25 on both public datasets and
+  its measured full optional build exceeded 300 seconds on this host. It remains an
+  explicit bonus mode; hybrid fusion is deferred to issue #18.
 - Campus NFS performance differed greatly from local filesystems. Profiling identified
   SQLite FTS execution as the useful optimization target, while mmap was rejected as
   a riskier filesystem-dependent choice.
@@ -414,8 +479,8 @@ artifacts remain ignored.
   when retrieval evidence is weak, even though the prompt requires grounding.
 - The operational prompt budget is conservative and does not claim that every host can
   use the model's maximum architectural context.
-- Semantic retrieval, hybrid ranking, persistent query caching, and HTTP access remain
-  unimplemented bonus work. Incremental indexing is implemented as an optional mode.
+- Hybrid ranking, persistent query caching, and HTTP access remain unimplemented bonus
+  work. Incremental indexing and semantic retrieval are explicit optional modes.
 
 ## Resources
 
@@ -428,6 +493,7 @@ artifacts remain ignored.
 - tqdm: https://tqdm.github.io/
 - uv: https://docs.astral.sh/uv/
 - Qwen/Qwen3-0.6B: https://huggingface.co/Qwen/Qwen3-0.6B
+- all-MiniLM-L6-v2: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 - Transformers: https://huggingface.co/docs/transformers/
 
 ### AI Usage
