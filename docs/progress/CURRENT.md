@@ -41,9 +41,9 @@ Bonus — Optional enhancements. Mandatory readiness remains frozen at merged ba
   Recall@1/3/5/10.
 
 ## Active issue
-[#19 Bonus: support incremental index updates](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/19)
-is implemented on `feat/issue-19-incremental-indexing` and awaiting review. Full
-rebuild remains the default; incremental indexing is explicit.
+[#18 Bonus: add hybrid lexical plus semantic retrieval](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/18)
+is implemented on `feat/issue-18-hybrid-retrieval` and awaiting review. Lexical BM25
+remains the default; semantic and hybrid retrieval are explicit.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -171,11 +171,24 @@ rebuild remains the default; incremental indexing is explicit.
   unchanged mandatory lexical default retains its prior passing evidence.
 - Fresh final gates: `make check` passes with 159 tests; strict mypy, Flake8, context
   validation, focused lexical/semantic suites, and `git diff --check` pass.
+- #18 adds one pure equal-weight reciprocal-rank fusion function over existing BM25 and
+  MiniLM top-`k` lists. Exact path/offset identities deduplicate cross-mode matches;
+  overlapping spans remain distinct and fused ties use canonical identity order.
+- `search` and `search_dataset` expose `--hybrid=True`; lexical/semantic behavior and
+  evaluator-facing output stay unchanged. Ambiguous semantic+hybrid flags fail clearly.
+- Fresh public hybrid Recall@1/3/5/10: Docs 0.450/0.700/0.790/0.870 and Code
+  0.323/0.495/0.596/0.707. Code Recall@10 improves over BM25's 0.667, but every other
+  BM25 cutoff is lower, so hybrid remains explicit and no weight/config tuning was added.
+- Fresh 199-question timings: 4.987s lexical, 22.794s semantic, 28.821s hybrid. All
+  outputs are valid `StudentSearchResults`, maximum span remains 2,000, and lexical
+  docs/code SHA-256 values remain frozen.
+- Fresh final gates: 11 focused hybrid tests; `make check` passes with 170 tests;
+  strict mypy over 44 files, Flake8, context validation and `git diff --check` pass.
 
 ## Next candidate
-After #17 is reviewed and merged, #18 may combine the measured lexical and semantic
-signals. Keep hybrid explicit and evidence-driven; do not replace the stronger BM25
-default without public results. Do not rerun private labels or campus tuning.
+After #18 is reviewed and merged, #20 may add a persistent repeated-query cache keyed
+by retrieval mode/signature and `index_revision`. Keep generated answers out of scope
+and do not use cache to mask first-seen retrieval costs.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

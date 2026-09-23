@@ -12,6 +12,7 @@ from src.application.use_cases.evaluate_recall import (
     StudentDataError,
     evaluate_search_results,
 )
+from src.application.use_cases.fuse_retrieval import fuse_ranked_sources
 from src.application.use_cases.update_index import plan_lexical_index_update
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "answer_search_result",
     "build_lexical_index",
     "evaluate_search_results",
+    "fuse_ranked_sources",
     "plan_lexical_index_update",
 ]

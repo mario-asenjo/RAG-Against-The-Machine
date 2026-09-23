@@ -18,6 +18,31 @@ without reopening private labels.
 | M5-F1 | 010e568 | Final mandatory SQLite FTS5 BM25 | Disposable clean checkout, supplied public corpus, max 2000 | 3.551 | 4.926 (2.314 docs + 2.612 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Final public rehearsal reproduces Recall, output shape, all mandatory commands, Qwen smokes and edge behavior |
 | B1-I1 | #19 branch | Schema-v2 BM25 plus explicit file-level incremental updates | Full public corpus, SHA-256 manifest, max 2000 | 8.430 cold full; 2.527 one-file median vs 3.004 comparable full; 1.513 no-op median | 7.638 (3.676 docs + 3.961 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Mandatory output hashes/Recall unchanged; final three rounds show 15.90% median one-file gain, exact reused-slice/lifecycle/FTS validation and full-rebuild equivalence |
 | B2-S1 | #17 branch | Optional all-MiniLM-L6-v2 cosine; BM25 remains default | Same canonical 17,134 chunks, 384-d normalized tensor | 379.690 full lexical+semantic; 19.797 one-file update; 5.603 no-op | 14.082 semantic vs 3.887 lexical (199 public questions, k=10) | 0.440 semantic / 0.870 lexical | 0.404 semantic / 0.606 lexical | 2000 | 27,862,262-byte artifact; standalone semantic underperforms BM25, so no default change or tuning |
+| B3-H1 | #18 branch | Optional equal-weight RRF over existing BM25 + MiniLM ranks | Existing canonical chunks/indexes; fixed rank constant 60; top-k from each mode | n/a; no new artifact/build | 28.821 hybrid vs 4.987 lexical vs 22.794 semantic (199 public questions, k=10) | 0.790 hybrid / 0.870 lexical / 0.440 semantic | 0.596 hybrid / 0.606 lexical / 0.404 semantic | 2000 | Hybrid improves Code R@10 to 0.707 but reduces other BM25 cutoffs; stays explicit with no weight tuning |
+
+## B3-H1 hybrid retrieval record
+
+- Date/branch: 2026-09-23, `feat/issue-18-hybrid-retrieval`.
+- Fixed public input: canonical relative `data/raw/vllm-0.10.1`, 1,969 files,
+  17,134 chunks, 100 docs + 99 code questions, `k=10`; no private data.
+- Fusion: equal-weight reciprocal rank fusion over the existing top-10 lists, fixed
+  rank constant 60, exact path/offset deduplication, deterministic identity ties.
+- Recall@1/3/5/10: lexical Docs 0.600/0.780/0.870/0.890, semantic Docs
+  0.270/0.410/0.440/0.530, hybrid Docs 0.450/0.700/0.790/0.870.
+- Recall@1/3/5/10: lexical Code 0.354/0.545/0.606/0.667, semantic Code
+  0.263/0.333/0.404/0.465, hybrid Code 0.323/0.495/0.596/0.707.
+- Timings: lexical 2.374s docs + 2.613s code = 4.987s; semantic 11.437s +
+  11.357s = 22.794s; hybrid 14.418s + 14.403s = 28.821s.
+- All outputs validate as `StudentSearchResults`, preserve `k=10`, contain at most ten
+  exact sources per question, and have maximum span 2,000. Lexical hashes remain frozen.
+- Exact cross-mode duplicate rate, defined as summed per-question identity intersections
+  divided by total lexical top-10 candidates, was 244/1,000 (24.40%) Docs and 137/990
+  (13.84%) Code; semantic candidate denominators were equal in size.
+- Hybrid improved only Code Recall@10 over BM25. Public probes of rank constants and
+  a 20-candidate pool produced no broad gain, so neither became configuration. No
+  default, dependency, persisted artifact, private-label or campus change was made.
+- Full details are in `docs/project/19_HYBRID_RETRIEVAL.md`; generated outputs remain
+  ignored.
 
 ## B2-S1 semantic retrieval record
 

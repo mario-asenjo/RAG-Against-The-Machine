@@ -145,10 +145,10 @@ Code 97ab7c56779e8379e7220a50b8fb109bb7df8b021a3f08bf67f7383a63175301
 ```
 
 Standalone MiniLM underperforms BM25 on this public corpus. It therefore remains an
-explicit bonus mode and supplies the semantic component needed by future issue #18;
-this issue does not implement or tune hybrid fusion. The 379.690-second optional full
-build is host-specific and above the mandatory 300-second indexing gate, but the
-mandatory default remains lexical-only and unchanged.
+explicit bonus mode and supplies the semantic component reused by issue #18; hybrid
+design and evidence live in `docs/project/19_HYBRID_RETRIEVAL.md`. The 379.690-second
+optional full build is host-specific and above the mandatory 300-second indexing gate,
+but the mandatory default remains lexical-only and unchanged.
 
 Final local verification passed `make check` with 159 tests, context validation,
 Flake8 and subject-flag mypy; `make lint-strict` and `git diff --check` also passed.

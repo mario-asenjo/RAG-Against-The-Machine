@@ -2,6 +2,33 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-23 — #18 hybrid retrieval
+- Verified #17 / PR #53 merged at `41bdb01`, fast-forwarded local main, removed #18's
+  resolved blocked label, assigned it and moved Project #12 to In Progress. The user's
+  unrelated roadmap prompt remains untracked and untouched.
+- RED failed collection because `fuse_ranked_sources` did not exist. Added one pure
+  equal-weight RRF function with fixed rank constant 60, exact source deduplication,
+  distinct overlapping spans and deterministic identity ties.
+- Added explicit `--hybrid=True` to `search` and `search_dataset`, reusing existing
+  lexical/semantic single and batch paths. Default lexical and explicit semantic modes
+  remain unchanged; semantic+hybrid fails clearly. No index, artifact, dependency,
+  model, answer path, cache, service, score calibration or tuning knob was added.
+- Focused tests cover cross-mode and same-mode duplicates, single-mode candidates,
+  canonical ties, near duplicates, limits, single/dataset CLI contracts, stale semantic
+  output preservation and traceback-free flag conflicts.
+- Public 199-question benchmark: hybrid Docs Recall@1/3/5/10
+  0.450/0.700/0.790/0.870; hybrid Code 0.323/0.495/0.596/0.707. Only Code R@10
+  improves over BM25. Hybrid took 28.821s versus 4.987s lexical and 22.794s semantic.
+- All outputs passed Pydantic shape/`k`/span checks; lexical hashes remained frozen.
+  Exact cross-mode duplicate rate was 244/1,000 (24.40%) Docs and 137/990 (13.84%)
+  Code, using total lexical top-10 candidates as the denominator.
+  Rank-constant and deeper-pool probes produced no broad gain and were not configured.
+  No private labels or campus evidence was used.
+- Independent correctness review accepted the slice. Ponytail review gaps for exact
+  adapter paths, dataset flag conflict and duplicate-rate evidence were applied. Final
+  gates: 11 focused tests, 170-test `make check`, strict mypy over 44 files, Flake8,
+  context validation and `git diff --check` passed.
+
 ## 2026-09-20 — #17 semantic embeddings
 - Started from merged #19 at `4b850dc`; kept the unrelated roadmap prompt untracked.
   Removed `blocked`, assigned #17, and moved Project #12 to In Progress.

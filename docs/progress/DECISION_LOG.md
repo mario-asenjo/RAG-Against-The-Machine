@@ -228,3 +228,19 @@ incompatible semantic state rebuilds from SQLite; stale revision/identity blocks
 Public standalone MiniLM Recall is lower than BM25 for docs and code, and the measured
 optional full build took 379.690s on this host. Semantic therefore remains explicit and
 does not alter mandatory defaults; #18 may evaluate hybrid fusion separately.
+
+## D-0019 — Hybrid uses fixed equal-weight reciprocal rank fusion
+**Status:** accepted for #18.
+
+Hybrid mode reuses the existing lexical and semantic ranked top-`k` lists and combines
+them with reciprocal rank fusion using equal weights and fixed rank constant 60. Exact
+path plus half-open offsets is the deduplication identity; overlapping but different
+spans remain distinct. Final score ties use exact identity order. No raw BM25/cosine
+score calibration, learned/manual weights, reranker, new index or persisted artifact is
+introduced.
+
+`search` and `search_dataset` expose explicit `--hybrid=True`; default remains lexical,
+and semantic plus hybrid flags are mutually exclusive. Public evidence improved only
+Code Recall@10 (0.667 to 0.707) while reducing other BM25 cutoffs. Hybrid therefore
+remains experimental and explicit. Probes of rank constants and deeper candidate pools
+did not justify configuration or further complexity.

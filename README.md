@@ -146,6 +146,19 @@ state rebuilds only the semantic projection after a lexical no-op. Semantic writ
 a sibling temporary file, so a failure leaves the prior artifact intact and detectably
 stale if SQLite has already advanced.
 
+### Hybrid retrieval bonus
+
+`search --hybrid=True` and `search_dataset --hybrid=True` run the existing BM25 and
+MiniLM retrievers, then combine their top-`k` lists with equal-weight reciprocal rank
+fusion using the fixed conventional rank constant 60. Exact path/offset identity
+deduplicates a chunk returned by both modes; distinct adjacent or overlapping chunks
+remain distinct. Fused-score ties resolve by exact canonical identity.
+
+Hybrid mode adds no index, model, persisted artifact, score-calibration framework, or
+tunable weight. `semantic=True` and `hybrid=True` are mutually exclusive, and omitting
+both flags preserves lexical behavior exactly. Missing or stale semantic state fails
+through the existing semantic validation before any fused output is written.
+
 The evaluator counts a source when the path matches exactly and the retrieved and
 expected ranges overlap above its IoU threshold. Consequently, the project preserves
 the complete corpus prefix, for example:
@@ -318,8 +331,9 @@ uv run python -m src search_dataset \
   --k 10
 ```
 
-Add `--semantic=True --local_files_only=True` to `search` or `search_dataset` to
-select the semantic projection. Omitting the flag preserves BM25 exactly.
+Add `--semantic=True --local_files_only=True` to select the semantic projection, or
+`--hybrid=True --local_files_only=True` to fuse BM25 and semantic rankings. Omitting
+both flags preserves BM25 exactly.
 
 ### Evaluate public retrieval locally
 
@@ -437,6 +451,24 @@ one-file semantic incremental update took 19.797 s, a validated semantic no-op t
 5.603 s, and the artifact was 27,862,262 bytes with shape `(17134, 384)`. These
 host-specific bonus timings do not alter the mandatory default's <=300 s lexical gate.
 
+Public issue #18 evidence reran all three modes over the same corpus/questions:
+
+| Method | Dataset | Recall@1 | Recall@3 | Recall@5 | Recall@10 | Search |
+|---|---|---:|---:|---:|---:|---:|
+| BM25 | Documentation | 0.600 | 0.780 | 0.870 | 0.890 | 2.374 s |
+| BM25 | Code | 0.354 | 0.545 | 0.606 | 0.667 | 2.613 s |
+| MiniLM cosine | Documentation | 0.270 | 0.410 | 0.440 | 0.530 | 11.437 s |
+| MiniLM cosine | Code | 0.263 | 0.333 | 0.404 | 0.465 | 11.357 s |
+| Equal RRF hybrid | Documentation | 0.450 | 0.700 | 0.790 | 0.870 | 14.418 s |
+| Equal RRF hybrid | Code | 0.323 | 0.495 | 0.596 | 0.707 | 14.403 s |
+
+Hybrid improved Code Recall@10 over BM25 from 0.667 to 0.707, but reduced the other
+recorded BM25 cutoffs and documentation Recall. It therefore remains an explicit
+experimental bonus and does not justify changing the lexical default or adding weights.
+Exact cross-mode duplicates were 244 of 1,000 lexical candidates for Docs (24.40%) and
+137 of 990 for Code (13.84%); the denominator is the total lexical top-10 candidates
+summed across all questions, equal in size to the semantic candidate denominator.
+
 ## Design Decisions
 
 - Use exact original text and half-open spans as the central correctness invariant.
@@ -449,6 +481,8 @@ host-specific bonus timings do not alter the mandatory default's <=300 s lexical
 - Preserve deterministic ranking with canonical order separate from SQLite row ID.
 - Keep embeddings as a second atomic projection over canonical SQLite chunks rather
   than introducing another chunk store, change detector, or vector database.
+- Fuse lexical and semantic ranks with one fixed equal-weight RRF function rather than
+  calibrating incomparable BM25 and cosine scores or adding tuning knobs.
 - Reuse one warm SQLite connection for dataset search.
 - Expand only the batch connection's page cache after profiling showed FTS execution
   dominated retrieval time.
@@ -468,8 +502,9 @@ host-specific bonus timings do not alter the mandatory default's <=300 s lexical
 - Natural-language questions and code identifiers do not always share vocabulary;
   lexical BM25 therefore has a lower code Recall@5 than documentation Recall@5.
 - Standalone MiniLM cosine retrieval underperformed BM25 on both public datasets and
-  its measured full optional build exceeded 300 seconds on this host. It remains an
-  explicit bonus mode; hybrid fusion is deferred to issue #18.
+  its measured full optional build exceeded 300 seconds on this host.
+- Equal-weight hybrid RRF improved only Code Recall@10 and reduced other BM25 cutoffs;
+  semantic and hybrid therefore remain explicit experimental modes.
 - Campus NFS performance differed greatly from local filesystems. Profiling identified
   SQLite FTS execution as the useful optimization target, while mmap was rejected as
   a riskier filesystem-dependent choice.
@@ -479,8 +514,8 @@ host-specific bonus timings do not alter the mandatory default's <=300 s lexical
   when retrieval evidence is weak, even though the prompt requires grounding.
 - The operational prompt budget is conservative and does not claim that every host can
   use the model's maximum architectural context.
-- Hybrid ranking, persistent query caching, and HTTP access remain unimplemented bonus
-  work. Incremental indexing and semantic retrieval are explicit optional modes.
+- Persistent query caching and HTTP access remain unimplemented bonus work. Incremental
+  indexing, semantic retrieval, and hybrid fusion are explicit optional modes.
 
 ## Resources
 
