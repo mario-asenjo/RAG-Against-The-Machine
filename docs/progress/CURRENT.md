@@ -41,9 +41,9 @@ Bonus — Optional enhancements. Mandatory readiness remains frozen at merged ba
   Recall@1/3/5/10.
 
 ## Active issue
-[#18 Bonus: add hybrid lexical plus semantic retrieval](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/18)
-is implemented on `feat/issue-18-hybrid-retrieval` and awaiting review. Lexical BM25
-remains the default; semantic and hybrid retrieval are explicit.
+[#20 Bonus: add retrieval cache for repeated queries](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/20)
+is implemented on `feat/issue-20-persistent-retrieval-cache` and undergoing final
+validation. Cache use is explicit; uncached lexical BM25 remains the default.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -184,11 +184,28 @@ remains the default; semantic and hybrid retrieval are explicit.
   docs/code SHA-256 values remain frozen.
 - Fresh final gates: 11 focused hybrid tests; `make check` passes with 170 tests;
   strict mypy over 44 files, Flake8, context validation and `git diff --check` pass.
+- #20 adds one lazy `query_cache` table inside lexical SQLite. Its primary key combines
+  cache schema, canonical `index_revision`, retriever signature, exact-query SHA-256 and
+  `k`; values are ordered Pydantic-validated exact `MinimalSource` identities.
+- `search` and `search_dataset` expose explicit `--cache=True` for lexical, semantic and
+  hybrid modes. `answer --cache=True` reuses only lexical sources and still runs source
+  hydration, prompt fitting and Qwen generation every time. `answer_dataset` remains
+  unchanged because it performs no retrieval. Generated answers are never cached.
+- Revision/model/mode/algorithm/fusion/query/`k` changes miss. Corrupt rows are replaced
+  only after successful retrieval; retrieval and persistence errors create no successful
+  row. Full rebuild naturally drops old cache state; incremental revision changes make
+  historical rows unreachable.
+- Three-round public medians for no-cache/miss/hit over 199 questions were lexical
+  4.058/4.320/0.974s, semantic 18.862/18.917/1.029s, and hybrid
+  34.667/36.291/1.454s. Cached and uncached hashes/Recall were identical, maximum span
+  stayed 2,000, and 199 rows used 284,934-333,404 logical bytes per mode.
+- Fresh final gates: 16 cache tests; `make check` passes with 186 tests; strict mypy over
+  46 files, Flake8, context validation and `git diff --check` pass. Independent
+  Ponytail-full review returned ACEPTAR with no blocking finding.
 
 ## Next candidate
-After #18 is reviewed and merged, #20 may add a persistent repeated-query cache keyed
-by retrieval mode/signature and `index_revision`. Keep generated answers out of scope
-and do not use cache to mask first-seen retrieval costs.
+After #20 is reviewed and merged, #21 may add the final local HTTP adapter over stable
+Pydantic use cases. Do not duplicate retrieval/cache business logic in routes.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

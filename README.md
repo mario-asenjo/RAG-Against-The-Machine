@@ -335,6 +335,11 @@ Add `--semantic=True --local_files_only=True` to select the semantic projection,
 `--hybrid=True --local_files_only=True` to fuse BM25 and semantic rankings. Omitting
 both flags preserves BM25 exactly.
 
+Add `--cache=True` to `search` or `search_dataset` to persist and reuse exact repeated
+queries. The SQLite key includes cache schema, canonical `index_revision`, retrieval
+mode/configuration signature, exact-query SHA-256, and `k`. It stores only ordered
+`MinimalSource` locations; default `--cache=False` keeps the existing path unchanged.
+
 ### Evaluate public retrieval locally
 
 ```bash
@@ -360,10 +365,15 @@ uv run python -m src answer \
   --save_path data/output/search_results_and_answer/answer.json \
   --model_cache_directory models/huggingface \
   --token_budget 2048 \
-  --max_new_tokens 128
+  --max_new_tokens 128 \
+  --cache=True
 ```
 
-After the cache exists, enforce offline loading with:
+For `answer`, this flag caches only the lexical retrieval result. Exact source hydration,
+prompt fitting, and Qwen generation still run on every call; generated answers are never
+cached.
+
+After the model snapshot cache exists, enforce offline loading with:
 
 ```text
 --local_files_only=True
@@ -381,6 +391,9 @@ uv run python -m src answer_dataset \
   --max_new_tokens 128 \
   --local_files_only=True
 ```
+
+`answer_dataset` accepts prior `StudentSearchResults` and performs no retrieval, so it
+has no retrieval-cache flag.
 
 ## Performance Analysis
 
@@ -469,6 +482,22 @@ Exact cross-mode duplicates were 244 of 1,000 lexical candidates for Docs (24.40
 137 of 990 for Code (13.84%); the denominator is the total lexical top-10 candidates
 summed across all questions, equal in size to the semantic candidate denominator.
 
+Public issue #20 evidence measured opt-in persistent caching over the same 199 distinct
+questions in two CLI processes. Values are three-run medians; a miss starts with an empty
+cache and a hit repeats the same questions:
+
+| Mode | No cache | Empty-cache miss | Persistent hit | Rows | Logical bytes |
+|---|---:|---:|---:|---:|---:|
+| BM25 | 4.058 s | 4.320 s | 0.974 s | 199 | 284,934 |
+| MiniLM cosine | 18.862 s | 18.917 s | 1.029 s | 199 | 308,166 |
+| Equal RRF hybrid | 34.667 s | 36.291 s | 1.454 s | 199 | 333,404 |
+
+No-cache, miss, and hit outputs were byte-identical per mode; all Recall@1/3/5/10 values
+above reproduced exactly and maximum span stayed 2,000. SQLite reused existing free pages,
+so the 37,699,584-byte file did not grow in this run while allocating 438,272-507,904
+bytes internally. Misses do not accelerate distinct first-seen evaluator queries; this
+bonus is for real repetition and does not replace mandatory uncached performance.
+
 ## Design Decisions
 
 - Use exact original text and half-open spans as the central correctness invariant.
@@ -483,6 +512,8 @@ summed across all questions, equal in size to the semantic candidate denominator
   than introducing another chunk store, change detector, or vector database.
 - Fuse lexical and semantic ranks with one fixed equal-weight RRF function rather than
   calibrating incomparable BM25 and cosine scores or adding tuning knobs.
+- Cache only ordered exact retrieval results under revision/configuration-aware SQLite
+  keys; never cache generated answers.
 - Reuse one warm SQLite connection for dataset search.
 - Expand only the batch connection's page cache after profiling showed FTS execution
   dominated retrieval time.
@@ -514,8 +545,8 @@ summed across all questions, equal in size to the semantic candidate denominator
   when retrieval evidence is weak, even though the prompt requires grounding.
 - The operational prompt budget is conservative and does not claim that every host can
   use the model's maximum architectural context.
-- Persistent query caching and HTTP access remain unimplemented bonus work. Incremental
-  indexing, semantic retrieval, and hybrid fusion are explicit optional modes.
+- Persistent retrieval caching retains old-revision rows until a full rebuild; add cleanup
+  only if measured database growth justifies it. Local HTTP access remains unimplemented.
 
 ## Resources
 
