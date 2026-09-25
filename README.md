@@ -26,29 +26,26 @@ Required commands implemented by the project are `index`, `search`,
 The implementation is a small modular monolith with explicit dependency boundaries:
 
 ```text
-Python Fire CLI (src/adapters/cli.py)
-        |
-        +--> application use cases
-        |      - build lexical index input
-        |      - evaluate Recall@k
-        |      - fit retrieved evidence and generate an answer
-        |
-        +--> infrastructure adapters
-        |      - exact corpus loading
-        |      - SQLite FTS5 persistence and BM25 search
-        |      - optional MiniLM tensor persistence and cosine search
-        |      - Qwen/Transformers generation
-        |
-        +--> Pydantic domain contracts
-               - documents and exact source chunks
-               - datasets, search results, and answers
-               - index metadata
+Fire CLI adapter ──> RagApplication ──> PipelineOperations port
+                                            ^
+                                            |
+                                 LocalPipelineOperations
+                                   - corpus and chunking
+                                   - SQLite FTS5 / cache
+                                   - MiniLM semantic / RRF
+                                   - Qwen generation
 ```
 
-`domain` and `application` do not depend on CLI or infrastructure modules. Ports are
-used only where the current implementation needs an interchangeable collaborator,
-such as chunking and text generation. There is no dependency-injection framework,
-server, background worker, or speculative retrieval abstraction.
+`RagApplication` owns adapter-neutral index/search/answer orchestration and returns
+structured Pydantic results. Fire owns only arguments, files, human formatting, progress,
+and error translation. `LocalPipelineOperations` owns concrete local filesystem, SQLite,
+MiniLM, cache, and Qwen effects. `domain` and `application` import neither adapters nor
+infrastructure, and peer adapters may not import each other.
+
+One coarse application-facing operations port is used instead of interfaces for every
+SQLite/model function. There is no dependency-injection framework, HTTP implementation,
+background worker, or speculative backend registry. Parent issue #21 will choose FastAPI
+or stdlib `HTTPServer` only after this shared seam is merged.
 
 Pipeline flow:
 

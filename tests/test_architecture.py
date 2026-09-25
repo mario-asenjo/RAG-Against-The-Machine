@@ -71,3 +71,18 @@ def test_domain_and_application_do_not_import_outer_layers() -> None:
                         )
 
     assert violations == []
+
+
+def test_adapters_do_not_import_peer_adapters() -> None:
+    """CLI and future HTTP adapters must meet only through application code."""
+    violations: list[str] = []
+    for path in (SRC / "adapters").rglob("*.py"):
+        module = module_name(path)
+        for imported in imports_in(path):
+            if (
+                imported.startswith("src.adapters.")
+                and imported != module
+            ):
+                violations.append(f"{module} imports peer adapter {imported}")
+
+    assert violations == []

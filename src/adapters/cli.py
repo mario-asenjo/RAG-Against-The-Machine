@@ -9,21 +9,22 @@ from typing import cast
 import fire
 from tqdm import tqdm
 
-from src.application.ports import Chunker
+from src.application.models import (
+    AnswerCommand,
+    IndexCommand,
+    IndexOperationResult,
+    RetrievalCommand,
+    validate_retrieval_mode,
+)
 from src.application.use_cases import (
     DatasetError,
     EvaluationConfigurationError,
+    RagApplication,
     StudentDataError,
     answer_search_result,
-    build_lexical_index,
     evaluate_search_results,
-    fuse_ranked_sources,
-    plan_lexical_index_update,
 )
-from src.chunking import chunk_python_document, chunk_text_document
 from src.domain import (
-    MinimalSearchResults,
-    MinimalSource,
     RagDataset,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
@@ -31,40 +32,57 @@ from src.domain import (
 from src.infrastructure import (
     INDEX_FILENAME,
     QwenGenerator,
-    load_corpus,
-    load_index_chunks,
-    load_index_metadata,
-    load_index_state,
-    load_source_texts,
     load_source_texts_from_connection,
-    save_lexical_index,
-    search_lexical_index,
-    search_lexical_index_batch,
-    update_lexical_index,
 )
-from src.infrastructure.cache import (
-    LEXICAL_RETRIEVER_SIGNATURE,
-    cached_retrieval,
-    hybrid_retriever_signature,
-    semantic_retriever_signature,
-)
+from src.infrastructure.pipeline import LocalPipelineOperations
 from src.infrastructure.semantic import (
     DEFAULT_SEMANTIC_MAX_LENGTH,
     DEFAULT_SEMANTIC_MODEL,
     DEFAULT_SEMANTIC_MODEL_REVISION,
-    SEMANTIC_INDEX_FILENAME,
-    MiniLmEmbedder,
-    build_semantic_index,
-    ensure_semantic_index,
-    load_semantic_index,
-    search_semantic_index,
-    search_semantic_index_batch,
-    update_semantic_index,
 )
+
+
+def _format_index_result(result: IndexOperationResult) -> str:
+    """Preserve the established Fire CLI index status text."""
+    semantic_suffix = (
+        f"; semantic index {result.semantic_action}"
+        if result.semantic_action is not None
+        else ""
+    )
+    if result.operation == "unchanged":
+        return (
+            f"Index unchanged at {result.index_directory} "
+            f"(revision {result.metadata.index_revision})"
+            f"{semantic_suffix}"
+        )
+    if result.operation == "incremental":
+        return (
+            f"Incrementally indexed {result.metadata.document_count} "
+            f"documents at {result.index_directory}: "
+            f"{result.added_count} added, "
+            f"{result.changed_count} changed, "
+            f"{result.deleted_count} deleted, "
+            f"revision {result.metadata.index_revision}"
+            f"{semantic_suffix}"
+        )
+    message = (
+        f"Indexed {result.metadata.document_count} documents into "
+        f"{result.metadata.chunk_count} chunks at {result.index_directory}"
+        f"{semantic_suffix}"
+    )
+    return (
+        f"Full rebuild fallback. {message}"
+        if result.operation == "fallback"
+        else message
+    )
 
 
 class RagCli:
     """Expose project commands as they are implemented issue by issue."""
+
+    def __init__(self) -> None:
+        """Bind the Fire adapter to the concrete local application."""
+        self._application = RagApplication(LocalPipelineOperations())
 
     @staticmethod
     def status() -> str:
@@ -88,188 +106,24 @@ class RagCli:
         local_files_only: bool = False,
     ) -> str:
         """Build canonical BM25 and optionally its semantic projection."""
-        chunkers: dict[str, Chunker] = {
-            ".md": chunk_text_document,
-            ".py": chunk_python_document,
-            ".txt": chunk_text_document,
-        }
         try:
-            corpus_root = Path(corpus_path)
-            documents = load_corpus(corpus_root, show_progress=True)
-            index_path = Path(save_directory) / INDEX_FILENAME
-            semantic_path = Path(save_directory) / SEMANTIC_INDEX_FILENAME
-            fallback = False
-            previous_revision = 0
-            if incremental:
-                try:
-                    previous_revision = load_index_metadata(
-                        index_path
-                    ).index_revision
-                    current, existing_files, existing_counts = (
-                        load_index_state(index_path)
-                    )
-                    if current.corpus_path != corpus_root.as_posix():
-                        raise ValueError("indexed corpus path has changed")
-                    if current.max_chunk_size != max_chunk_size:
-                        raise ValueError("indexed max_chunk_size has changed")
-                    existing_chunks = load_index_chunks(index_path)
-                    update = plan_lexical_index_update(
-                        documents,
-                        existing_files,
-                        existing_counts,
-                        existing_chunks,
-                        chunkers,
-                        corpus_root.as_posix(),
-                        max_chunk_size,
-                        current.index_revision,
-                        show_progress=True,
-                    )
-                except (OSError, RuntimeError, ValueError, sqlite3.Error):
-                    fallback = True
-                else:
-                    if not update.has_changes:
-                        lexical_result = (
-                            "Index unchanged at "
-                            f"{index_path.parent.as_posix()} "
-                            f"(revision {current.index_revision})"
-                        )
-                        if not semantic:
-                            return lexical_result
-                        embedder = MiniLmEmbedder(
-                            cache_directory=Path(
-                                semantic_model_cache_directory
-                            ),
-                            model_name=semantic_model,
-                            model_revision=semantic_model_revision,
-                            max_length=semantic_max_length,
-                            local_files_only=local_files_only,
-                            show_progress=True,
-                        )
-                        rebuilt = ensure_semantic_index(
-                            existing_chunks,
-                            semantic_path,
-                            current.index_revision,
-                            embedder,
-                        )
-                        action = "rebuilt" if rebuilt else "unchanged"
-                        return f"{lexical_result}; semantic index {action}"
-
-                    existing_paths = {
-                        item.file_path for item in existing_files
-                    }
-                    added = sum(
-                        path not in existing_paths
-                        for path in update.changed_paths
-                    )
-                    changed = len(update.changed_paths) - added
-                    semantic_compatible = False
-                    if semantic:
-                        embedder = MiniLmEmbedder(
-                            cache_directory=Path(
-                                semantic_model_cache_directory
-                            ),
-                            model_name=semantic_model,
-                            model_revision=semantic_model_revision,
-                            max_length=semantic_max_length,
-                            local_files_only=local_files_only,
-                            show_progress=True,
-                        )
-                        try:
-                            load_semantic_index(
-                                semantic_path,
-                                expected_source_index_revision=(
-                                    current.index_revision
-                                ),
-                                expected_model_name=embedder.model_name,
-                                expected_model_revision=(
-                                    embedder.model_revision
-                                ),
-                                expected_max_length=embedder.max_length,
-                                canonical_chunks=existing_chunks,
-                            )
-                        except (OSError, RuntimeError, ValueError):
-                            pass
-                        else:
-                            semantic_compatible = True
-
-                    update_lexical_index(update, index_path)
-                    semantic_result = ""
-                    if semantic:
-                        canonical_chunks = load_index_chunks(index_path)
-                        if semantic_compatible:
-                            update_semantic_index(
-                                semantic_path,
-                                existing_chunks,
-                                canonical_chunks,
-                                update,
-                                embedder,
-                            )
-                            semantic_result = "; semantic index updated"
-                        else:
-                            build_semantic_index(
-                                canonical_chunks,
-                                semantic_path,
-                                update.metadata.index_revision,
-                                embedder,
-                            )
-                            semantic_result = "; semantic index rebuilt"
-                    return (
-                        f"Incrementally indexed {len(update.files)} documents "
-                        f"at {index_path.parent.as_posix()}: "
-                        f"{added} added, {changed} changed, "
-                        f"{len(update.removed_paths)} deleted, "
-                        f"revision {update.metadata.index_revision}"
-                        f"{semantic_result}"
-                    )
-
-            index_revision = previous_revision + 1 if previous_revision else 1
-            if not fallback:
-                try:
-                    current, _, _ = load_index_state(index_path)
-                    index_revision = current.index_revision + 1
-                except (OSError, RuntimeError, ValueError, sqlite3.Error):
-                    pass
-            if semantic:
-                try:
-                    semantic_metadata, _, _ = load_semantic_index(
-                        semantic_path
-                    )
-                    index_revision = max(
-                        index_revision,
-                        semantic_metadata.source_index_revision + 1,
-                    )
-                except (OSError, RuntimeError, ValueError):
-                    pass
-            build = build_lexical_index(
-                documents,
-                chunkers,
-                corpus_root.as_posix(),
-                max_chunk_size,
-                show_progress=True,
-                index_revision=index_revision,
-            )
-            index_path = save_lexical_index(
-                build,
-                index_path,
-                show_progress=True,
-            )
-            if semantic:
-                embedder = MiniLmEmbedder(
-                    cache_directory=Path(semantic_model_cache_directory),
-                    model_name=semantic_model,
-                    model_revision=semantic_model_revision,
-                    max_length=semantic_max_length,
+            result = self._application.index(
+                IndexCommand(
+                    max_chunk_size=max_chunk_size,
+                    corpus_path=corpus_path,
+                    save_directory=save_directory,
+                    incremental=incremental,
+                    semantic=semantic,
+                    semantic_model=semantic_model,
+                    semantic_model_revision=semantic_model_revision,
+                    semantic_model_cache_directory=(
+                        semantic_model_cache_directory
+                    ),
+                    semantic_max_length=semantic_max_length,
                     local_files_only=local_files_only,
-                    show_progress=True,
-                )
-                build_semantic_index(
-                    load_index_chunks(index_path),
-                    semantic_path,
-                    build.metadata.index_revision,
-                    embedder,
-                )
-            else:
-                semantic_path.unlink(missing_ok=True)
+                ),
+                show_progress=True,
+            )
         except (
             OSError,
             RuntimeError,
@@ -278,15 +132,7 @@ class RagCli:
             sqlite3.Error,
         ) as error:
             raise fire.core.FireError(str(error)) from error
-
-        result = (
-            f"Indexed {build.metadata.document_count} documents into "
-            f"{build.metadata.chunk_count} chunks at "
-            f"{index_path.parent.as_posix()}"
-        )
-        if semantic:
-            result = f"{result}; semantic index built"
-        return f"Full rebuild fallback. {result}" if fallback else result
+        return _format_index_result(result)
 
     def search(
         self,
@@ -304,88 +150,30 @@ class RagCli:
     ) -> str:
         """Return ranked exact source locations from the persisted index."""
         try:
-            if semantic and hybrid:
-                raise ValueError(
-                    "semantic and hybrid modes are mutually exclusive"
-                )
-            lexical_path = Path(index_directory) / INDEX_FILENAME
-            signature = LEXICAL_RETRIEVER_SIGNATURE
-            embedder: MiniLmEmbedder | None = None
-            if semantic or hybrid:
-                embedder = MiniLmEmbedder(
-                    cache_directory=Path(semantic_model_cache_directory),
-                    model_name=semantic_model,
-                    model_revision=semantic_model_revision,
-                    max_length=semantic_max_length,
+            validate_retrieval_mode(semantic, hybrid)
+            result = self._application.search(
+                query,
+                RetrievalCommand(
+                    k=k,
+                    index_directory=index_directory,
+                    semantic=semantic,
+                    hybrid=hybrid,
+                    semantic_model=semantic_model,
+                    semantic_model_revision=semantic_model_revision,
+                    semantic_model_cache_directory=(
+                        semantic_model_cache_directory
+                    ),
+                    semantic_max_length=semantic_max_length,
                     local_files_only=local_files_only,
-                )
-                semantic_signature = semantic_retriever_signature(
-                    semantic_model,
-                    semantic_model_revision,
-                    semantic_max_length,
-                )
-                signature = (
-                    hybrid_retriever_signature(semantic_signature)
-                    if hybrid
-                    else semantic_signature
-                )
-
-            def retrieve(queries: list[str]) -> list[list[MinimalSource]]:
-                results: list[list[MinimalSource]] = []
-                for item in queries:
-                    if hybrid:
-                        semantic_embedder = cast(MiniLmEmbedder, embedder)
-                        lexical_sources = search_lexical_index(
-                            lexical_path, item, k
-                        )
-                        semantic_sources = search_semantic_index(
-                            Path(index_directory) / SEMANTIC_INDEX_FILENAME,
-                            lexical_path,
-                            item,
-                            k,
-                            semantic_embedder,
-                        )
-                        results.append(
-                            fuse_ranked_sources(
-                                lexical_sources,
-                                semantic_sources,
-                                k,
-                            )
-                        )
-                    elif semantic:
-                        results.append(
-                            search_semantic_index(
-                                Path(index_directory)
-                                / SEMANTIC_INDEX_FILENAME,
-                                lexical_path,
-                                item,
-                                k,
-                                cast(MiniLmEmbedder, embedder),
-                            )
-                        )
-                    else:
-                        results.append(
-                            search_lexical_index(lexical_path, item, k)
-                        )
-                return results
-
-            sources = (
-                cached_retrieval(
-                    lexical_path,
-                    [query],
-                    k,
-                    signature,
-                    retrieve,
-                )[0]
-                if cache
-                else retrieve([query])[0]
+                    cache=cache,
+                ),
             )
         except (OSError, RuntimeError, ValueError) as error:
             raise fire.core.FireError(str(error)) from error
         return "\n".join(
             f"{source.file_path} "
             f"[{source.first_character_index}:{source.last_character_index}]"
-            for source in sources
+            for source in result.retrieved_sources
         )
 
     def search_dataset(
@@ -405,101 +193,29 @@ class RagCli:
     ) -> str:
         """Search a dataset and persist the subject's output model."""
         try:
-            if semantic and hybrid:
-                raise ValueError(
-                    "semantic and hybrid modes are mutually exclusive"
-                )
+            validate_retrieval_mode(semantic, hybrid)
+            command = RetrievalCommand(
+                k=k,
+                index_directory=index_directory,
+                semantic=semantic,
+                hybrid=hybrid,
+                semantic_model=semantic_model,
+                semantic_model_revision=semantic_model_revision,
+                semantic_model_cache_directory=(
+                    semantic_model_cache_directory
+                ),
+                semantic_max_length=semantic_max_length,
+                local_files_only=local_files_only,
+                cache=cache,
+            )
             input_path = Path(dataset_path)
             dataset = RagDataset.model_validate_json(
                 input_path.read_text(encoding="utf-8")
             )
-            queries = [question.question for question in dataset.rag_questions]
-            lexical_path = Path(index_directory) / INDEX_FILENAME
-            signature = LEXICAL_RETRIEVER_SIGNATURE
-            embedder: MiniLmEmbedder | None = None
-            if semantic or hybrid:
-                embedder = MiniLmEmbedder(
-                    cache_directory=Path(semantic_model_cache_directory),
-                    model_name=semantic_model,
-                    model_revision=semantic_model_revision,
-                    max_length=semantic_max_length,
-                    local_files_only=local_files_only,
-                    show_progress=True,
-                )
-                semantic_signature = semantic_retriever_signature(
-                    semantic_model,
-                    semantic_model_revision,
-                    semantic_max_length,
-                )
-                signature = (
-                    hybrid_retriever_signature(semantic_signature)
-                    if hybrid
-                    else semantic_signature
-                )
-
-            def retrieve(items: list[str]) -> list[list[MinimalSource]]:
-                if hybrid:
-                    lexical_sources = search_lexical_index_batch(
-                        lexical_path,
-                        items,
-                        k,
-                        show_progress=True,
-                    )
-                    semantic_sources = search_semantic_index_batch(
-                        Path(index_directory) / SEMANTIC_INDEX_FILENAME,
-                        lexical_path,
-                        items,
-                        k,
-                        cast(MiniLmEmbedder, embedder),
-                        show_progress=True,
-                    )
-                    return [
-                        fuse_ranked_sources(lexical, semantic, k)
-                        for lexical, semantic in zip(
-                            lexical_sources,
-                            semantic_sources,
-                        )
-                    ]
-                if semantic:
-                    return search_semantic_index_batch(
-                        Path(index_directory) / SEMANTIC_INDEX_FILENAME,
-                        lexical_path,
-                        items,
-                        k,
-                        cast(MiniLmEmbedder, embedder),
-                        show_progress=True,
-                    )
-                return search_lexical_index_batch(
-                    lexical_path,
-                    items,
-                    k,
-                    show_progress=True,
-                )
-
-            sources = (
-                cached_retrieval(
-                    lexical_path,
-                    queries,
-                    k,
-                    signature,
-                    retrieve,
-                )
-                if cache
-                else retrieve(queries)
-            )
-            output = StudentSearchResults(
-                search_results=[
-                    MinimalSearchResults(
-                        question_id=question.question_id,
-                        question=question.question,
-                        retrieved_sources=retrieved_sources,
-                    )
-                    for question, retrieved_sources in zip(
-                        dataset.rag_questions,
-                        sources,
-                    )
-                ],
-                k=k,
+            output = self._application.search_dataset(
+                dataset,
+                command,
+                show_progress=True,
             )
             output_directory = Path(save_directory)
             output_directory.mkdir(parents=True, exist_ok=True)
@@ -526,39 +242,21 @@ class RagCli:
     ) -> str:
         """Search once, ground one answer, and save the subject wrapper."""
         try:
-            index_path = Path(index_directory) / INDEX_FILENAME
-            retrieved_sources = (
-                cached_retrieval(
-                    index_path,
-                    [query],
-                    k,
-                    LEXICAL_RETRIEVER_SIGNATURE,
-                    lambda queries: [
-                        search_lexical_index(index_path, item, k)
-                        for item in queries
-                    ],
-                )[0]
-                if cache
-                else search_lexical_index(index_path, query, k)
-            )
-            search_result = MinimalSearchResults(
-                question=query,
-                retrieved_sources=retrieved_sources,
-            )
-            generator = QwenGenerator(
-                cache_directory=Path(model_cache_directory),
-                local_files_only=local_files_only,
+            answer = self._application.answer(
+                query,
+                AnswerCommand(
+                    k=k,
+                    index_directory=index_directory,
+                    model_cache_directory=model_cache_directory,
+                    token_budget=token_budget,
+                    max_new_tokens=max_new_tokens,
+                    local_files_only=local_files_only,
+                    cache=cache,
+                ),
                 show_progress=True,
             )
-            generation = answer_search_result(
-                search_result,
-                lambda sources: load_source_texts(index_path, sources),
-                generator,
-                token_budget=token_budget,
-                max_new_tokens=max_new_tokens,
-            )
             output = StudentSearchResultsAndAnswer(
-                search_results=[generation.answer],
+                search_results=[answer],
                 k=k,
             )
             output_path = Path(save_path)
@@ -573,10 +271,10 @@ class RagCli:
         sources = "\n".join(
             f"{source.file_path} "
             f"[{source.first_character_index}:{source.last_character_index}]"
-            for source in generation.answer.retrieved_sources
+            for source in answer.retrieved_sources
         ) or "(none)"
         return (
-            f"Answer: {generation.answer.answer}\n"
+            f"Answer: {answer.answer}\n"
             f"Sources:\n{sources}\n"
             f"Saved student_search_results_and_answer to "
             f"{output_path.as_posix()}"

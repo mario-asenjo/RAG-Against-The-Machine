@@ -25,6 +25,7 @@ from src.domain import (
     StudentSearchResultsAndAnswer,
 )
 from src.infrastructure import save_lexical_index
+from src.infrastructure import pipeline as pipeline_module
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -162,7 +163,7 @@ def test_answer_dataset_preserves_contract_and_reuses_batch_resources(
 
     monkeypatch.setattr(cli_module, "QwenGenerator", make_generator)
     monkeypatch.setattr(
-        cli_module,
+        pipeline_module,
         "search_lexical_index",
         lambda *args, **kwargs: pytest.fail("answer_dataset reran retrieval"),
     )

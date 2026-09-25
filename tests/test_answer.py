@@ -11,7 +11,7 @@ from typing import Any, Sequence
 import pytest
 from fire.core import FireError
 
-from src.adapters import cli as cli_module
+from src.infrastructure import pipeline as pipeline_module
 from src.adapters.cli import RagCli
 from src.application.use_cases.answer_question import (
     ABSTENTION_ANSWER,
@@ -561,9 +561,9 @@ def test_answer_cli_searches_once_and_saves_pydantic_wrapper(
             "[Source 1: file.py [0:4]]\ntext": 20,
         }
     )
-    monkeypatch.setattr(cli_module, "search_lexical_index", search_once)
+    monkeypatch.setattr(pipeline_module, "search_lexical_index", search_once)
     monkeypatch.setattr(
-        cli_module, "load_source_texts", lambda path, sources: ["text"]
+        pipeline_module, "load_source_texts", lambda path, sources: ["text"]
     )
     generator_options: list[dict[str, object]] = []
 
@@ -571,7 +571,7 @@ def test_answer_cli_searches_once_and_saves_pydantic_wrapper(
         generator_options.append(kwargs)
         return fake
 
-    monkeypatch.setattr(cli_module, "QwenGenerator", make_generator)
+    monkeypatch.setattr(pipeline_module, "QwenGenerator", make_generator)
     output_path = tmp_path / "answer.json"
 
     displayed = RagCli().answer(
@@ -731,9 +731,13 @@ def test_answer_cli_reports_missing_exact_source(
     )
     fake = FakeGenerator(token_counts={"": 10})
     monkeypatch.setattr(
-        cli_module, "search_lexical_index", lambda *args: [missing]
+        pipeline_module, "search_lexical_index", lambda *args: [missing]
     )
-    monkeypatch.setattr(cli_module, "QwenGenerator", lambda **kwargs: fake)
+    monkeypatch.setattr(
+        pipeline_module,
+        "QwenGenerator",
+        lambda **kwargs: fake,
+    )
     output_path = tmp_path / "answer.json"
 
     with pytest.raises(FireError, match="Exact source not found"):
@@ -774,12 +778,16 @@ def test_answer_cli_translates_generator_failure(
         }
     )
     monkeypatch.setattr(
-        cli_module, "search_lexical_index", lambda *args: [exact]
+        pipeline_module, "search_lexical_index", lambda *args: [exact]
     )
     monkeypatch.setattr(
-        cli_module, "load_source_texts", lambda *args: ["text"]
+        pipeline_module, "load_source_texts", lambda *args: ["text"]
     )
-    monkeypatch.setattr(cli_module, "QwenGenerator", lambda **kwargs: fake)
+    monkeypatch.setattr(
+        pipeline_module,
+        "QwenGenerator",
+        lambda **kwargs: fake,
+    )
 
     with pytest.raises(FireError, match="model unavailable"):
         RagCli().answer("What?", save_path=str(tmp_path / "answer.json"))

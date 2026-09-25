@@ -265,3 +265,18 @@ prompt fitting, and Qwen generation still execute. `answer_dataset` remains unch
 because it consumes prior search output and performs no retrieval. Public no-cache/miss /
 hit outputs and Recall were identical across lexical, semantic and hybrid modes; measured
 misses confirmed that this bonus is not a substitute for first-seen evaluator performance.
+
+## D-0021 — Extract one shared application seam before choosing HTTP
+**Status:** accepted for #56; HTTP framework decision remains in #21.
+
+The second adapter must not call `RagCli` or duplicate index lifecycle, retrieval mode /
+cache selection, or answer composition. Extract adapter-neutral Pydantic commands and one
+`RagApplication` facade first. Application code depends on one cohesive
+`PipelineOperations` port; `LocalPipelineOperations` owns existing filesystem, SQLite,
+semantic, cache and Qwen effects. Fire keeps only transport, file, progress, formatting
+and error-translation concerns.
+
+Do not create one interface per helper, a DI container, repositories, factories or a
+backend registry. Keep `answer_dataset` and evaluation outside the three-endpoint HTTP
+scope. Defer FastAPI Router/controller versus stdlib `HTTPServer` until #56 is merged;
+select the transport against the actual seam without moving or copying application logic.

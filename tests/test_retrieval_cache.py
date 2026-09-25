@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from src.adapters import cli as cli_module
+from src.infrastructure import pipeline as pipeline_module
 from src.adapters.cli import RagCli
 from src.domain import (
     IndexedFile,
@@ -399,9 +399,9 @@ def test_search_uses_mode_and_model_specific_cache_signature(
         signatures.append(signature)
         return [[expected]]
 
-    monkeypatch.setattr(cli_module, "cached_retrieval", cache)
+    monkeypatch.setattr(pipeline_module, "cached_retrieval", cache)
     monkeypatch.setattr(
-        cli_module,
+        pipeline_module,
         "MiniLmEmbedder",
         lambda **kwargs: object(),
     )
@@ -445,7 +445,11 @@ def test_search_dataset_deduplicates_and_persists_batch_queries(
         calls.append(queries)
         return [[expected] for _ in queries]
 
-    monkeypatch.setattr(cli_module, "search_lexical_index_batch", retrieve)
+    monkeypatch.setattr(
+        pipeline_module,
+        "search_lexical_index_batch",
+        retrieve,
+    )
     for output_name in ("first", "second"):
         RagCli().search_dataset(
             str(dataset_path),
@@ -546,9 +550,9 @@ def test_answer_caches_only_retrieval_and_generates_every_time(
         return [expected]
 
     FakeGenerator.generated.clear()
-    monkeypatch.setattr(cli_module, "search_lexical_index", search)
+    monkeypatch.setattr(pipeline_module, "search_lexical_index", search)
     monkeypatch.setattr(
-        cli_module,
+        pipeline_module,
         "QwenGenerator",
         lambda **kwargs: FakeGenerator(),
     )
