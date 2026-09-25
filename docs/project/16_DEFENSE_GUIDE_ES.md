@@ -265,22 +265,35 @@ hexagonal. Separaciones reales:
 - `domain`: modelos e invariantes Pydantic;
 - `application`: casos de uso puros y puertos mínimos;
 - `infrastructure`: SQLite, corpus y Transformers;
-- `adapters`: CLI Fire;
+- `adapters`: CLI Fire y controladores FastAPI;
 - `chunking`: algoritmos source-preserving.
 
 Por qué no hay más capas:
 
 - una interfaz con una única implementación sin necesidad real añade ruido;
 - no se necesita servicio de base de datos para un índice local;
-- no se necesita async para un evaluador CLI CPU-only;
-- la API HTTP es bonus y debe reutilizar casos de uso estables cuando exista.
+- no se necesita convertir el pipeline CPU-only en async;
+- la API HTTP bonus reutiliza exactamente `RagApplication`, no llama al CLI.
 
-Pregunta probable: “¿Por qué el CLI conoce infraestructura?”
+Pregunta probable: “¿Cómo comparten comportamiento CLI y HTTP?”
 
-Respuesta: el composition root necesita construir adaptadores concretos. Algunos flujos de
-orquestación dataset siguen en el CLI porque solo existe esa frontera mandatory. La lógica
-crítica reusable —index build, Recall y respuesta grounded— está en application. Extraer
-más antes de un segundo adapter sería abstracción especulativa.
+Respuesta: Fire y los Routers dependen de `RagApplication`; la implementación concreta
+`LocalPipelineOperations` contiene filesystem, SQLite, MiniLM, caché y Qwen. Los Routers
+solo validan, delegan y traducen HTTP. `answer_dataset` y `evaluate` siguen en CLI porque
+son contratos mandatory basados en ficheros, no porque HTTP duplique su orquestación.
+
+### FastAPI local frente a servidor de producción
+
+`uv run python -m src api` selecciona el adapter HTTP solo cuando `api` es el primer
+argumento. Uvicorn carga `src.adapters.http:create_app` en modo factory, escucha únicamente
+en `127.0.0.1` y usa un worker. FastAPI aporta validación Pydantic, Routers y OpenAPI con
+poco plumbing manual.
+
+No afirmar que sea thread-safe ni production-ready. No hay idempotencia, coordinación de
+operaciones solapadas, autenticación, TLS/CORS, cola, cancelación/timeouts, lifecycle
+multi-worker ni binding remoto. Diseñar esas garantías exigiría definir identidad de
+operación, exclusión read/write, conexiones SQLite, transición atómica de índices,
+propiedad de modelos y procesos. No se implementan especulativamente para este bonus local.
 
 ## 6. Decisiones y trade-offs
 

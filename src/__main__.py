@@ -1,6 +1,6 @@
 """Module entry point for `python -m src`."""
 
-from src.adapters.cli import main
+from src.launcher import main
 
 
 if __name__ == "__main__":

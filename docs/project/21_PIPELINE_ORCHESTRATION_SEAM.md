@@ -76,14 +76,16 @@ retrieval. `evaluate` remains CLI-only. Neither belongs to the planned three-end
 - No index, semantic artifact, cache schema, model, ranking, JSON wrapper, or dependency
   changed.
 
-## HTTP decision deliberately deferred
+## HTTP handoff resolved by issue #21
 
-Parent #21 will compare FastAPI routers/controllers with stdlib `HTTPServer` after this PR
-merges. Both must consume `RagApplication`; framework choice may affect only transport,
-validation/error mapping, server startup, tests, and documentation. It may not move or
+Issue #56 deliberately deferred framework selection. After it merged, issue #21 selected
+FastAPI routers/controllers and Uvicorn over stdlib `HTTPServer` for direct Pydantic
+request/response integration, OpenAPI, and compact real-HTTP testing. The accepted
+boundary remains unchanged: FastAPI consumes `RagApplication` and may own only transport,
+validation/error mapping, server startup, tests, and documentation. It does not move or
 copy index/retrieval/answer logic.
 
-Decision inputs for #21:
+Decision inputs applied in #21:
 
 - total runtime/dev dependency cost;
 - route/error code size and clarity;
@@ -92,8 +94,9 @@ Decision inputs for #21:
 - lightweight real HTTP tests;
 - OpenAPI value versus framework ownership.
 
-No HTTP server, route, Router, ASGI handler, `HTTPServer`, FastAPI, Uvicorn, or HTTPX is
-part of issue #56.
+No HTTP server, route, Router, ASGI handler, `HTTPServer`, FastAPI, Uvicorn, or HTTP client
+was part of issue #56. The resulting transport is documented separately in
+`docs/project/22_LOCAL_FASTAPI.md` so this file remains an accurate extraction record.
 
 ## Evidence
 
