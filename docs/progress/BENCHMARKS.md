@@ -19,6 +19,38 @@ without reopening private labels.
 | B1-I1 | #19 branch | Schema-v2 BM25 plus explicit file-level incremental updates | Full public corpus, SHA-256 manifest, max 2000 | 8.430 cold full; 2.527 one-file median vs 3.004 comparable full; 1.513 no-op median | 7.638 (3.676 docs + 3.961 code; 199 public questions, k=10) | 0.870 | 0.606 | 2000 | Mandatory output hashes/Recall unchanged; final three rounds show 15.90% median one-file gain, exact reused-slice/lifecycle/FTS validation and full-rebuild equivalence |
 | B2-S1 | #17 branch | Optional all-MiniLM-L6-v2 cosine; BM25 remains default | Same canonical 17,134 chunks, 384-d normalized tensor | 379.690 full lexical+semantic; 19.797 one-file update; 5.603 no-op | 14.082 semantic vs 3.887 lexical (199 public questions, k=10) | 0.440 semantic / 0.870 lexical | 0.404 semantic / 0.606 lexical | 2000 | 27,862,262-byte artifact; standalone semantic underperforms BM25, so no default change or tuning |
 | B3-H1 | #18 branch | Optional equal-weight RRF over existing BM25 + MiniLM ranks | Existing canonical chunks/indexes; fixed rank constant 60; top-k from each mode | n/a; no new artifact/build | 28.821 hybrid vs 4.987 lexical vs 22.794 semantic (199 public questions, k=10) | 0.790 hybrid / 0.870 lexical / 0.440 semantic | 0.596 hybrid / 0.606 lexical / 0.404 semantic | 2000 | Hybrid improves Code R@10 to 0.707 but reduces other BM25 cutoffs; stays explicit with no weight tuning |
+| B4-C1 | #20 branch | Optional SQLite exact-query retrieval-result cache for lexical / semantic / hybrid | Same canonical 17,134 chunks; revision + signature + exact-query hash + k key | n/a; lazy table in lexical SQLite | Median hit 0.974 / 1.029 / 1.454s vs no-cache 4.058 / 18.862 / 34.667s (lexical / semantic / hybrid; 199 questions) | unchanged: 0.870 / 0.440 / 0.790 | unchanged: 0.606 / 0.404 / 0.596 | 2000 | No-cache/miss/hit hashes and Recall identical; misses add overhead, so cache stays explicit and never stores generated answers |
+
+## B4-C1 persistent retrieval cache record
+
+- Date/branch: 2026-09-24, `feat/issue-20-persistent-retrieval-cache`.
+- Fixed public input: canonical 1,969-file / 17,134-chunk SQLite index, 100 Docs +
+  99 Code distinct questions, `k=10`, two CLI processes per observation, three rounds;
+  no private data.
+- Key: cache schema 1, canonical `index_revision`, deterministic mode/configuration
+  signature, SHA-256 of exact UTF-8 query and `k`. Values contain only ordered exact
+  `MinimalSource` JSON validated by Pydantic and canonical chunk identity.
+- Lexical no-cache/miss/hit observations: 3.967/4.061/4.058s,
+  4.197/4.450/4.320s, 0.946/0.994/0.974s; medians 4.058/4.320/0.974s.
+- Semantic no-cache/miss/hit observations: 18.831/18.928/18.862s,
+  18.917/19.798/18.910s, 0.996/1.029/1.067s; medians 18.862/18.917/1.029s.
+- Hybrid no-cache/miss/hit observations: 35.330/34.667/31.555s,
+  82.488/31.266/36.291s, 4.376/1.454/1.189s; medians
+  34.667/36.291/1.454s. First-round host outliers are retained.
+- Every no-cache/miss/hit JSON hash matched within its mode. Fresh Recall@1/3/5/10
+  exactly reproduced B2/B3: lexical Docs 0.600/0.780/0.870/0.890 and Code
+  0.354/0.545/0.606/0.667; semantic Docs 0.270/0.410/0.440/0.530 and Code
+  0.263/0.333/0.404/0.465; hybrid Docs 0.450/0.700/0.790/0.870 and Code
+  0.323/0.495/0.596/0.707.
+- All modes retained 199 questions / 1,990 sources and maximum span 2,000. Each stored
+  199 rows. Logical bytes were 284,934 lexical, 308,166 semantic and 333,404 hybrid;
+  SQLite allocated 438,272/471,040/507,904 bytes from free pages, so the
+  37,699,584-byte file did not grow in these runs.
+- Distinct first-seen misses did not improve and added validation/write overhead. This
+  bonus targets actual repetition and does not replace mandatory uncached performance.
+  `answer` may cache only lexical retrieval; Qwen output is never cached.
+- Full details are in `docs/project/20_PERSISTENT_RETRIEVAL_CACHE.md`; raw traces and
+  copied indexes remain ignored under `data/output/issue20/`.
 
 ## B3-H1 hybrid retrieval record
 

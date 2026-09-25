@@ -23,6 +23,7 @@ from src.application.use_cases import (
 from src.chunking import chunk_python_document, chunk_text_document
 from src.domain import (
     MinimalSearchResults,
+    MinimalSource,
     RagDataset,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
@@ -40,6 +41,12 @@ from src.infrastructure import (
     search_lexical_index,
     search_lexical_index_batch,
     update_lexical_index,
+)
+from src.infrastructure.cache import (
+    LEXICAL_RETRIEVER_SIGNATURE,
+    cached_retrieval,
+    hybrid_retriever_signature,
+    semantic_retriever_signature,
 )
 from src.infrastructure.semantic import (
     DEFAULT_SEMANTIC_MAX_LENGTH,
@@ -293,6 +300,7 @@ class RagCli:
         semantic_model_cache_directory: str = "models/huggingface",
         semantic_max_length: int = DEFAULT_SEMANTIC_MAX_LENGTH,
         local_files_only: bool = False,
+        cache: bool = False,
     ) -> str:
         """Return ranked exact source locations from the persisted index."""
         try:
@@ -301,6 +309,8 @@ class RagCli:
                     "semantic and hybrid modes are mutually exclusive"
                 )
             lexical_path = Path(index_directory) / INDEX_FILENAME
+            signature = LEXICAL_RETRIEVER_SIGNATURE
+            embedder: MiniLmEmbedder | None = None
             if semantic or hybrid:
                 embedder = MiniLmEmbedder(
                     cache_directory=Path(semantic_model_cache_directory),
@@ -309,34 +319,67 @@ class RagCli:
                     max_length=semantic_max_length,
                     local_files_only=local_files_only,
                 )
-            if hybrid:
-                lexical_sources = search_lexical_index(
+                semantic_signature = semantic_retriever_signature(
+                    semantic_model,
+                    semantic_model_revision,
+                    semantic_max_length,
+                )
+                signature = (
+                    hybrid_retriever_signature(semantic_signature)
+                    if hybrid
+                    else semantic_signature
+                )
+
+            def retrieve(queries: list[str]) -> list[list[MinimalSource]]:
+                results: list[list[MinimalSource]] = []
+                for item in queries:
+                    if hybrid:
+                        semantic_embedder = cast(MiniLmEmbedder, embedder)
+                        lexical_sources = search_lexical_index(
+                            lexical_path, item, k
+                        )
+                        semantic_sources = search_semantic_index(
+                            Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                            lexical_path,
+                            item,
+                            k,
+                            semantic_embedder,
+                        )
+                        results.append(
+                            fuse_ranked_sources(
+                                lexical_sources,
+                                semantic_sources,
+                                k,
+                            )
+                        )
+                    elif semantic:
+                        results.append(
+                            search_semantic_index(
+                                Path(index_directory)
+                                / SEMANTIC_INDEX_FILENAME,
+                                lexical_path,
+                                item,
+                                k,
+                                cast(MiniLmEmbedder, embedder),
+                            )
+                        )
+                    else:
+                        results.append(
+                            search_lexical_index(lexical_path, item, k)
+                        )
+                return results
+
+            sources = (
+                cached_retrieval(
                     lexical_path,
-                    query,
+                    [query],
                     k,
-                )
-                semantic_sources = search_semantic_index(
-                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
-                    lexical_path,
-                    query,
-                    k,
-                    embedder,
-                )
-                sources = fuse_ranked_sources(
-                    lexical_sources,
-                    semantic_sources,
-                    k,
-                )
-            elif semantic:
-                sources = search_semantic_index(
-                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
-                    lexical_path,
-                    query,
-                    k,
-                    embedder,
-                )
-            else:
-                sources = search_lexical_index(lexical_path, query, k)
+                    signature,
+                    retrieve,
+                )[0]
+                if cache
+                else retrieve([query])[0]
+            )
         except (OSError, RuntimeError, ValueError) as error:
             raise fire.core.FireError(str(error)) from error
         return "\n".join(
@@ -358,6 +401,7 @@ class RagCli:
         semantic_model_cache_directory: str = "models/huggingface",
         semantic_max_length: int = DEFAULT_SEMANTIC_MAX_LENGTH,
         local_files_only: bool = False,
+        cache: bool = False,
     ) -> str:
         """Search a dataset and persist the subject's output model."""
         try:
@@ -371,6 +415,8 @@ class RagCli:
             )
             queries = [question.question for question in dataset.rag_questions]
             lexical_path = Path(index_directory) / INDEX_FILENAME
+            signature = LEXICAL_RETRIEVER_SIGNATURE
+            embedder: MiniLmEmbedder | None = None
             if semantic or hybrid:
                 embedder = MiniLmEmbedder(
                     cache_directory=Path(semantic_model_cache_directory),
@@ -380,44 +426,67 @@ class RagCli:
                     local_files_only=local_files_only,
                     show_progress=True,
                 )
-            if hybrid:
-                lexical_sources = search_lexical_index_batch(
-                    lexical_path,
-                    queries,
-                    k,
-                    show_progress=True,
+                semantic_signature = semantic_retriever_signature(
+                    semantic_model,
+                    semantic_model_revision,
+                    semantic_max_length,
                 )
-                semantic_sources = search_semantic_index_batch(
-                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
-                    lexical_path,
-                    queries,
-                    k,
-                    embedder,
-                    show_progress=True,
+                signature = (
+                    hybrid_retriever_signature(semantic_signature)
+                    if hybrid
+                    else semantic_signature
                 )
-                sources = [
-                    fuse_ranked_sources(lexical, semantic, k)
-                    for lexical, semantic in zip(
-                        lexical_sources,
-                        semantic_sources,
+
+            def retrieve(items: list[str]) -> list[list[MinimalSource]]:
+                if hybrid:
+                    lexical_sources = search_lexical_index_batch(
+                        lexical_path,
+                        items,
+                        k,
+                        show_progress=True,
                     )
-                ]
-            elif semantic:
-                sources = search_semantic_index_batch(
-                    Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                    semantic_sources = search_semantic_index_batch(
+                        Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                        lexical_path,
+                        items,
+                        k,
+                        cast(MiniLmEmbedder, embedder),
+                        show_progress=True,
+                    )
+                    return [
+                        fuse_ranked_sources(lexical, semantic, k)
+                        for lexical, semantic in zip(
+                            lexical_sources,
+                            semantic_sources,
+                        )
+                    ]
+                if semantic:
+                    return search_semantic_index_batch(
+                        Path(index_directory) / SEMANTIC_INDEX_FILENAME,
+                        lexical_path,
+                        items,
+                        k,
+                        cast(MiniLmEmbedder, embedder),
+                        show_progress=True,
+                    )
+                return search_lexical_index_batch(
+                    lexical_path,
+                    items,
+                    k,
+                    show_progress=True,
+                )
+
+            sources = (
+                cached_retrieval(
                     lexical_path,
                     queries,
                     k,
-                    embedder,
-                    show_progress=True,
+                    signature,
+                    retrieve,
                 )
-            else:
-                sources = search_lexical_index_batch(
-                    lexical_path,
-                    queries,
-                    k,
-                    show_progress=True,
-                )
+                if cache
+                else retrieve(queries)
+            )
             output = StudentSearchResults(
                 search_results=[
                     MinimalSearchResults(
@@ -453,13 +522,28 @@ class RagCli:
         token_budget: int = 2048,
         max_new_tokens: int = 128,
         local_files_only: bool = False,
+        cache: bool = False,
     ) -> str:
         """Search once, ground one answer, and save the subject wrapper."""
         try:
             index_path = Path(index_directory) / INDEX_FILENAME
+            retrieved_sources = (
+                cached_retrieval(
+                    index_path,
+                    [query],
+                    k,
+                    LEXICAL_RETRIEVER_SIGNATURE,
+                    lambda queries: [
+                        search_lexical_index(index_path, item, k)
+                        for item in queries
+                    ],
+                )[0]
+                if cache
+                else search_lexical_index(index_path, query, k)
+            )
             search_result = MinimalSearchResults(
                 question=query,
-                retrieved_sources=search_lexical_index(index_path, query, k),
+                retrieved_sources=retrieved_sources,
             )
             generator = QwenGenerator(
                 cache_directory=Path(model_cache_directory),

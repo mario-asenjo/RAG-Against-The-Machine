@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 from src.domain import MinimalSource
 
-_RRF_RANK_CONSTANT = 60
+RRF_RANK_CONSTANT = 60
 
 
 def fuse_ranked_sources(
@@ -30,7 +30,7 @@ def fuse_ranked_sources(
                 continue
             seen.add(identity)
             scores[identity] = scores.get(identity, 0.0) + 1.0 / (
-                _RRF_RANK_CONSTANT + rank
+                RRF_RANK_CONSTANT + rank
             )
             sources[identity] = source
 

@@ -2,6 +2,37 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-24 — #20 persistent retrieval cache
+- Verified #18 / PR #54 merged, fast-forwarded local main, created
+  `feat/issue-20-persistent-retrieval-cache`, removed the resolved blocked label,
+  assigned #20 and moved Project #12 to In Progress. The unrelated roadmap prompt
+  remains untracked and untouched.
+- RED failed collection because `src.infrastructure.cache` did not exist. Added one lazy
+  SQLite `query_cache` table keyed by cache schema, canonical `index_revision`, stable
+  retriever signature, exact-query SHA-256 and `k`; values contain only ordered exact
+  `MinimalSource` JSON.
+- Added explicit `--cache=True` to lexical/semantic/hybrid `search` and `search_dataset`.
+  `answer` may cache only its lexical source retrieval while Qwen always runs;
+  `answer_dataset` remains unchanged because it never retrieves. No generated-answer
+  cache, TTL/LRU, cleanup framework, service, dependency or second database was added.
+- Pydantic plus canonical chunk-identity validation rejects corrupt rows. Query/`k` /
+  mode/model/fusion/revision changes miss, duplicate batch queries retrieve once, and
+  retrieval/write failures create no successful row. A first validation implementation
+  issued one SQLite lookup per source and measured 83.926s for a lexical hit; loading the
+  17,134 canonical identities once fixed the root cause and reduced the final median hit
+  to 0.974s.
+- Three-round public no-cache/miss/hit medians over 199 questions were lexical
+  4.058/4.320/0.974s, semantic 18.862/18.917/1.029s and hybrid
+  34.667/36.291/1.454s. The hybrid first-round 82.488s miss / 4.376s hit outliers are
+  retained. Cached/uncached hashes and all Recall cutoffs matched; maximum span stayed
+  2,000. No private data was used.
+- Each mode stored 199 rows using 284,934-333,404 logical bytes and
+  438,272-507,904 allocated bytes. Existing free pages absorbed them, so the
+  37,699,584-byte SQLite file did not grow in this run.
+- Final local gates passed: 16 cache tests, 186-test `make check`, strict mypy over 46
+  files, Flake8, context validation and `git diff --check`. Independent Ponytail-full
+  review returned ACEPTAR; a parallel correctness review timed out without a finding.
+
 ## 2026-09-23 — #18 hybrid retrieval
 - Verified #17 / PR #53 merged at `41bdb01`, fast-forwarded local main, removed #18's
   resolved blocked label, assigned it and moved Project #12 to In Progress. The user's

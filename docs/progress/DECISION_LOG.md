@@ -244,3 +244,24 @@ and semantic plus hybrid flags are mutually exclusive. Public evidence improved 
 Code Recall@10 (0.667 to 0.707) while reducing other BM25 cutoffs. Hybrid therefore
 remains experimental and explicit. Probes of rank constants and deeper candidate pools
 did not justify configuration or further complexity.
+
+## D-0020 — Cache exact retrieval results, never generated answers
+**Status:** accepted for #20.
+
+Persistent caching is explicit (`--cache=True`) and stores only ordered exact
+`MinimalSource` lists in one lazy SQLite `query_cache` table. The primary key is cache
+schema version, canonical `index_revision`, deterministic retriever signature, SHA-256 of
+the exact UTF-8 query, and `k`. Signatures cover lexical algorithm version, semantic
+model/revision/max-length/pooling/cosine behavior, and hybrid RRF parameters plus child
+signatures. Default uncached behavior and ranking remain unchanged.
+
+Validate cached JSON with Pydantic and every identity against canonical `chunks` before
+returning it. Incremental revision changes create misses while preserving historical rows;
+full rebuild replaces the database. Errors are not cached. No TTL, eviction framework,
+query equivalence, second database, service, or generated-answer cache is introduced.
+
+`answer --cache=True` may reuse only its lexical retrieval result; source hydration,
+prompt fitting, and Qwen generation still execute. `answer_dataset` remains unchanged
+because it consumes prior search output and performs no retrieval. Public no-cache/miss /
+hit outputs and Recall were identical across lexical, semantic and hybrid modes; measured
+misses confirmed that this bonus is not a substitute for first-seen evaluator performance.
