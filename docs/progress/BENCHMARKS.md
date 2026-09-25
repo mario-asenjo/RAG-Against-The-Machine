@@ -227,6 +227,29 @@ prompt fitting, caching, or answer length from this evidence. The smallest usefu
 runtime candidate is removing or parameterizing the hard-coded 4-thread setting;
 10 threads was fastest on this host, while PyTorch default also resolved to 10.
 
+## Issue #21 transport regression record
+
+- Date: 2026-09-25.
+- Branch: `feat/issue-21-local-fastapi`.
+- Scope: launcher/FastAPI transport only; no retrieval implementation or ranking changed.
+- Locked dependency install: `uv sync --locked` passed with 62 resolved packages and 54
+  installed-package checks.
+- Real Uvicorn factory smoke on `127.0.0.1:8765`: OpenAPI, full index, lexical search, and
+  model-free `k=0` answer all returned HTTP 200. The one-file corpus produced one chunk;
+  search returned the exact `[0:22]` span and answer returned the existing abstention.
+- Public `k=10` regression timings including process startup, validation, retrieval, and
+  output write: lexical Docs 2.963s / Code 3.275s; semantic Docs 14.320s / Code 11.982s;
+  hybrid Docs 16.245s / Code 19.296s.
+- All six output SHA-256 values matched the frozen pre-HTTP values. Every output validated
+  as `StudentSearchResults`; question counts remained 100 Docs / 99 Code and maximum span
+  remained 2,000.
+- Recall@1/3/5/10 remained lexical Docs `0.600/0.780/0.870/0.890`, lexical Code
+  `0.354/0.545/0.606/0.667`, semantic Docs `0.270/0.410/0.440/0.530`, semantic Code
+  `0.263/0.333/0.404/0.465`, hybrid Docs `0.450/0.700/0.790/0.870`, and hybrid Code
+  `0.323/0.495/0.596/0.707`.
+- Conclusion: the optional HTTP transport did not alter mandatory/default retrieval or
+  either optional ranking path. No private data was inspected.
+
 ## M2-R1 reproduction record
 
 - Date/time: 2026-08-29 13:33:19-13:33:35 +02:00.

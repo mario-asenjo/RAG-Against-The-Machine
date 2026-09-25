@@ -41,9 +41,9 @@ Bonus — Optional enhancements. Mandatory readiness remains frozen at merged ba
   Recall@1/3/5/10.
 
 ## Active issue
-[#56 Refactor: extract adapter-neutral pipeline orchestration](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/56)
-is implemented on `refactor/issue-56-extract-pipeline-orchestration` as the architecture
-prerequisite for parent HTTP bonus #21. No HTTP code or dependency is included.
+[#21 Bonus: local HTTP API](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/21)
+is implemented on `feat/issue-21-local-fastapi` over the merged #56 application seam.
+FastAPI routers act as controllers and delegate to the same `RagApplication` as Fire.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -215,9 +215,30 @@ prerequisite for parent HTTP bonus #21. No HTTP code or dependency is included.
   exactly after extraction. No dependency, artifact format, ranking or private-data run
   was added. Independent Ponytail-full architecture review returned ACEPTAR.
 
+- #21 reserves first argument `api` in `python -m src`; every other first argument follows
+  the unchanged Fire path. API mode launches `src.adapters.http:create_app` through
+  Uvicorn factory mode on fixed `127.0.0.1`, one worker, with configurable port/log level.
+- Three thin FastAPI routers expose local `POST /index`, `/search`, and `/answer`. Requests
+  extend existing application commands with CLI-equivalent defaults; responses reuse
+  `IndexOperationResult`, `MinimalSearchResults`, and `MinimalAnswer` exactly.
+- Expected missing/invalid/runtime failures map centrally to JSON 404/400/500 responses;
+  request-shape errors remain FastAPI/Pydantic 422. OpenAPI, Swagger UI, and ReDoc are
+  generated from the same Pydantic contracts.
+- Focused HTTP/launcher checks pass with 12 tests. A real Uvicorn smoke completed full
+  index, search, and model-free `k=0` answer over one exact `[0:22]` source span.
+- Fresh project gates pass: `make check` reports 202 tests plus context/Flake8/subject
+  mypy; `make lint-strict` reports strict mypy over 63 files; `uv sync --locked` and
+  `git diff --check` pass.
+- All six public lexical/semantic/hybrid Docs/Code hashes and Recall@1/3/5/10 values remain
+  frozen after the transport change; maximum source span remains 2,000. No private data
+  was used.
+- The server is explicitly local-only and not production-safe: overlapping operations,
+  idempotency, auth/TLS/CORS, queues, cancellation/timeouts, multi-worker model lifecycle,
+  and remote deployment require a future design rather than implicit guarantees.
+
 ## Next candidate
-After #56 is reviewed and merged, parent #21 will choose FastAPI routers versus stdlib
-`HTTPServer` against the real shared seam, then add only the local HTTP adapter.
+Review and manually merge #21, then run the final evaluator/submission rehearsal. No
+additional feature issue is required for the current subject delivery.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

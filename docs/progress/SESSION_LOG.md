@@ -2,6 +2,38 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-25 — #21 local FastAPI adapter
+- Verified PR #57 / issue #56 merged at `942bf3f`, fast-forwarded `main`, removed the
+  resolved blocker from #21, assigned it, moved Project #12 to In Progress, and created
+  `feat/issue-21-local-fastapi`. The unrelated local roadmap prompt remains untracked.
+- Observed the expected RED because FastAPI was absent, then added FastAPI/Uvicorn plus
+  `httpx2` for TestClient. `python -m src` reserves first argument `api`; every other
+  command delegates unchanged to Fire. API mode runs a fixed-localhost, one-worker
+  Uvicorn factory with configurable port/log level.
+- Added three thin routers/controllers for index, search, and answer over the merged
+  `RagApplication` seam, Pydantic HTTP requests with CLI-equivalent defaults, shared
+  result models, central expected-error translation, and no duplicated pipeline logic.
+- Twelve focused tests cover dispatch, factory options, OpenAPI, defaults, exact models,
+  expected 400/404/500 and validation 422 responses, real tiny index/search/answer, and
+  unchanged Fire dispatch. A real Uvicorn process returned 200 for OpenAPI and all three
+  routes while preserving the exact `[0:22]` source span.
+- All six public Docs/Code output hashes, Recall@1/3/5/10 values, and maximum 2,000 span
+  remain unchanged across lexical, semantic, and hybrid modes. No private data was used.
+- Fresh gates pass: `make check` with 202 tests, context, Flake8 and subject mypy;
+  `make lint-strict` with strict mypy over 63 files; `uv sync --locked`; and
+  `git diff --check`.
+- Independent delivery audit returned ACEPTAR. Ponytail-full found one invalid-port
+  traceback path; argparse now rejects ports outside `0..65535`, subprocess tests pin
+  clean exit 2 for `-1`/`65536`, and focused follow-up review returned ACEPTAR.
+- A detached clean-worktree rehearsal at `c37fa56` created Python 3.10 from the lock,
+  passed `make check` with 202 tests, verified API help plus the final Fire status message,
+  and left the checkout clean. The stale scaffold status was corrected to report all
+  required commands complete and point to first-argument `api` discovery.
+- Documented that localhost binding and one worker are launch constraints, not claims of
+  thread safety or idempotency; auth, TLS/CORS, overlapping-operation coordination,
+  queues, cancellation/timeouts, multi-worker model lifecycle, and production deployment
+  remain explicit future-design concerns.
+
 ## 2026-09-25 — #56 adapter-neutral orchestration extraction
 - Verified #20 / PR #55 merged at `9f0fb32`, fast-forwarded main, created child #56
   linked from parent #21, added it to Project #12 in In Progress, and opened

@@ -26,26 +26,30 @@ Required commands implemented by the project are `index`, `search`,
 The implementation is a small modular monolith with explicit dependency boundaries:
 
 ```text
-Fire CLI adapter ──> RagApplication ──> PipelineOperations port
-                                            ^
-                                            |
-                                 LocalPipelineOperations
-                                   - corpus and chunking
-                                   - SQLite FTS5 / cache
-                                   - MiniLM semantic / RRF
-                                   - Qwen generation
+Python Fire ───────────────┐
+                           v
+FastAPI Routers ──> RagApplication ──> PipelineOperations port
+                                              ^
+                                              |
+                                   LocalPipelineOperations
+                                     - corpus and chunking
+                                     - SQLite FTS5 / cache
+                                     - MiniLM semantic / RRF
+                                     - Qwen generation
 ```
 
 `RagApplication` owns adapter-neutral index/search/answer orchestration and returns
-structured Pydantic results. Fire owns only arguments, files, human formatting, progress,
-and error translation. `LocalPipelineOperations` owns concrete local filesystem, SQLite,
-MiniLM, cache, and Qwen effects. `domain` and `application` import neither adapters nor
-infrastructure, and peer adapters may not import each other.
+structured Pydantic results. Fire owns arguments, files, human formatting, progress, and
+CLI error translation. FastAPI routers act as thin controllers for request validation,
+application delegation, response models, and HTTP error translation.
+`LocalPipelineOperations` owns concrete local filesystem, SQLite, MiniLM, cache, and Qwen
+effects. `domain` and `application` import neither adapters nor infrastructure, and peer
+adapter families may not import each other.
 
 One coarse application-facing operations port is used instead of interfaces for every
-SQLite/model function. There is no dependency-injection framework, HTTP implementation,
-background worker, or speculative backend registry. Parent issue #21 will choose FastAPI
-or stdlib `HTTPServer` only after this shared seam is merged.
+SQLite/model function. There is no dependency-injection framework, background worker,
+controller base class, or speculative backend registry. The local FastAPI adapter calls
+the same use cases as Fire; it does not copy pipeline orchestration.
 
 Pipeline flow:
 
@@ -215,6 +219,7 @@ from `StudentSearchResultsAndAnswer`. The model, not Qwen, owns JSON structure.
 - Enough disk space for dependencies, the vLLM corpus, indexes, and the Qwen and
   optional MiniLM model snapshots.
 - Network access for first model downloads, or a pre-populated model cache.
+- The optional HTTP adapter binds only to local loopback (`127.0.0.1`).
 
 ### Install dependencies
 
@@ -269,6 +274,55 @@ make lint-strict
 
 `make check` runs repository-context validation, Flake8, mypy with the subject flags,
 and pytest.
+
+### Run the optional local HTTP API
+
+The module launcher reserves `api` only when it is the first argument. Every other first
+argument continues through the existing Python Fire CLI.
+
+```bash
+uv run python -m src api --help
+uv run python -m src api --port 8000 --log-level info
+```
+
+The launcher starts Uvicorn in application-factory mode with
+`src.adapters.http:create_app`, one worker, and fixed host `127.0.0.1`. Interactive
+OpenAPI documentation is then available at `http://127.0.0.1:8000/docs`.
+
+The three controller routes reuse the same application commands/results as the CLI:
+
+```text
+POST /index   -> IndexOperationResult
+POST /search  -> MinimalSearchResults
+POST /answer  -> MinimalAnswer
+```
+
+For example, after starting the server:
+
+```bash
+curl -X POST http://127.0.0.1:8000/index \
+  -H 'Content-Type: application/json' \
+  -d '{"corpus_path":"data/raw/vllm-0.10.1","save_directory":"data/processed"}'
+
+curl -X POST http://127.0.0.1:8000/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"What is paged attention?","index_directory":"data/processed","k":5}'
+
+curl -X POST http://127.0.0.1:8000/answer \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"What is paged attention?","index_directory":"data/processed","k":5}'
+```
+
+BM25 remains the default. Semantic, hybrid, and retrieval-cache modes remain explicit.
+Dataset search, dataset answer, and evaluation stay on their existing CLI/file contracts;
+the HTTP adapter intentionally exposes no duplicate endpoints for them.
+
+This server is local development/bonus functionality, not a production deployment. It
+does not promise thread-safe overlapping index/search/answer operations, idempotency,
+authentication, TLS, CORS policy, job persistence, cancellation/timeouts, request queues,
+rate limiting, multi-worker model lifecycle, or remote binding. Those concerns require a
+future design covering operation identity, read/write exclusion, SQLite connection
+ownership, atomic index transitions, model ownership, and worker/process lifecycle.
 
 ## Example Usage
 
@@ -511,6 +565,8 @@ bonus is for real repetition and does not replace mandatory uncached performance
   calibrating incomparable BM25 and cosine scores or adding tuning knobs.
 - Cache only ordered exact retrieval results under revision/configuration-aware SQLite
   keys; never cache generated answers.
+- Expose the optional local API as thin FastAPI routers over `RagApplication`, and reserve
+  only first argument `api` in the module launcher so Fire remains unchanged.
 - Reuse one warm SQLite connection for dataset search.
 - Expand only the batch connection's page cache after profiling showed FTS execution
   dominated retrieval time.
@@ -543,7 +599,10 @@ bonus is for real repetition and does not replace mandatory uncached performance
 - The operational prompt budget is conservative and does not claim that every host can
   use the model's maximum architectural context.
 - Persistent retrieval caching retains old-revision rows until a full rebuild; add cleanup
-  only if measured database growth justifies it. Local HTTP access remains unimplemented.
+  only if measured database growth justifies it.
+- The FastAPI bonus is intentionally localhost-only and single-worker. FastAPI may execute
+  synchronous handlers in worker threads, but the project provides no concurrency,
+  idempotency, multi-worker, remote-deployment, or production-security guarantee.
 
 ## Resources
 
@@ -553,6 +612,8 @@ bonus is for real repetition and does not replace mandatory uncached performance
 - SQLite `cache_size`: https://www.sqlite.org/pragma.html#pragma_cache_size
 - Pydantic: https://docs.pydantic.dev/
 - Python Fire: https://github.com/google/python-fire
+- FastAPI: https://fastapi.tiangolo.com/
+- Uvicorn: https://www.uvicorn.org/
 - tqdm: https://tqdm.github.io/
 - uv: https://docs.astral.sh/uv/
 - Qwen/Qwen3-0.6B: https://huggingface.co/Qwen/Qwen3-0.6B

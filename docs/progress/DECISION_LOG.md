@@ -267,7 +267,7 @@ hit outputs and Recall were identical across lexical, semantic and hybrid modes;
 misses confirmed that this bonus is not a substitute for first-seen evaluator performance.
 
 ## D-0021 — Extract one shared application seam before choosing HTTP
-**Status:** accepted for #56; HTTP framework decision remains in #21.
+**Status:** accepted for #56; framework decision completed in #21.
 
 The second adapter must not call `RagCli` or duplicate index lifecycle, retrieval mode /
 cache selection, or answer composition. Extract adapter-neutral Pydantic commands and one
@@ -278,5 +278,24 @@ and error-translation concerns.
 
 Do not create one interface per helper, a DI container, repositories, factories or a
 backend registry. Keep `answer_dataset` and evaluation outside the three-endpoint HTTP
-scope. Defer FastAPI Router/controller versus stdlib `HTTPServer` until #56 is merged;
-select the transport against the actual seam without moving or copying application logic.
+scope. Framework selection was deferred until #56 merged; issue #21 then selected the
+transport against the actual seam without moving or copying application logic.
+
+## D-0022 — Use FastAPI routers with a localhost Uvicorn factory
+**Status:** accepted for #21.
+
+Reserve only first argument `api` in `python -m src`; otherwise delegate unchanged to
+Fire. API mode runs `src.adapters.http:create_app` with Uvicorn factory mode, fixed
+`127.0.0.1`, and one worker. Include three thin routers/controllers for index, search,
+and answer over `RagApplication`; reuse existing Pydantic result models and keep dataset /
+evaluation file workflows CLI-only.
+
+FastAPI is preferred to stdlib `HTTPServer` here because Pydantic validation, OpenAPI,
+router composition, and real HTTP tests remove more manual transport code than the two
+small runtime dependencies add. Do not introduce a DI container, controller hierarchy,
+generic router factory, middleware stack, or duplicate orchestration.
+
+This local bonus makes no thread-safety, idempotency, auth, TLS/CORS, cancellation,
+queueing, multi-worker, or production-deployment guarantee. Add those only through a
+future explicit design covering operation identity, read/write exclusion, SQLite and
+model lifecycle, timeouts, and process ownership.

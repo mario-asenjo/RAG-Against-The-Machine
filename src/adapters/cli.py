@@ -78,7 +78,7 @@ def _format_index_result(result: IndexOperationResult) -> str:
 
 
 class RagCli:
-    """Expose project commands as they are implemented issue by issue."""
+    """Expose the completed project commands to Python Fire."""
 
     def __init__(self) -> None:
         """Bind the Fire adapter to the concrete local application."""
@@ -86,10 +86,11 @@ class RagCli:
 
     @staticmethod
     def status() -> str:
-        """Return the current scaffold status."""
+        """Return readiness and the optional API discovery hint."""
         return (
-            "Harness ready. Lexical indexing is implemented; remaining RAG "
-            "commands follow the active GitHub issues."
+            "Harness ready. All required RAG commands are implemented; use "
+            "`api` as the first argument for the optional local FastAPI "
+            "server."
         )
 
     def index(
