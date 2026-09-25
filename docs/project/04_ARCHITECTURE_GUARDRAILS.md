@@ -24,14 +24,12 @@ Planned seams by delivery order:
 - Corpus loading: deterministic source discovery with exact path/text fidelity.
 - Chunking: distinct Python and Markdown/text strategies preserving original
   spans.
-- Indexing/search: indexing/retrieval ports plus mandatory lexical
-  infrastructure when search needs a replaceable retriever.
-- Dataset/evaluation/answer commands: use cases as pure orchestration.
-- Generation: generator port plus Qwen infrastructure when answer commands
-  need a replaceable model adapter.
-- Bonus semantic/hybrid retrieval: add `SemanticRetriever`/`HybridRetriever`
-  behind the retriever port without changing search use cases, CLI, or HTTP.
-- Bonus HTTP API: add `adapters/http` and reuse existing use cases.
+- Indexing/search/answer: `RagApplication` plus one cohesive local-operations port;
+  existing chunker and generator ports remain narrow.
+- Bonus semantic/hybrid/cache: concrete local operations select existing modes while
+  shared use cases preserve Pydantic identity and order.
+- Bonus HTTP API: add `adapters/http` over `RagApplication`; decide FastAPI versus
+  stdlib only after the orchestration seam is merged.
 
 Do not add dependency-injection containers, repository layers, factories,
 databases, async workers, HTTP APIs, semantic embeddings, hybrid retrieval,

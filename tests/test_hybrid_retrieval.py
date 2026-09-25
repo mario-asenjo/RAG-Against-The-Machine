@@ -115,10 +115,16 @@ def test_hybrid_single_search_calls_existing_retrievers_and_fuses(
         calls.append(("semantic", query, k))
         return [source("shared.md"), source("semantic.md")]
 
-    monkeypatch.setattr("src.adapters.cli.search_lexical_index", lexical)
-    monkeypatch.setattr("src.adapters.cli.search_semantic_index", semantic)
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.search_lexical_index",
+        lexical,
+    )
+    monkeypatch.setattr(
+        "src.infrastructure.pipeline.search_semantic_index",
+        semantic,
+    )
+    monkeypatch.setattr(
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: FakeEmbedder(),
     )
 
@@ -183,15 +189,15 @@ def test_hybrid_dataset_preserves_question_order_k_and_pydantic_output(
         return semantic_results
 
     monkeypatch.setattr(
-        "src.adapters.cli.search_lexical_index_batch",
+        "src.infrastructure.pipeline.search_lexical_index_batch",
         lexical_batch,
     )
     monkeypatch.setattr(
-        "src.adapters.cli.search_semantic_index_batch",
+        "src.infrastructure.pipeline.search_semantic_index_batch",
         semantic_batch,
     )
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: FakeEmbedder(),
     )
     dataset_path = tmp_path / "questions.json"
@@ -234,7 +240,7 @@ def test_hybrid_semantic_failure_preserves_existing_dataset_output(
 ) -> None:
     """A stale failure remains clear and preserves prior JSON."""
     monkeypatch.setattr(
-        "src.adapters.cli.search_lexical_index_batch",
+        "src.infrastructure.pipeline.search_lexical_index_batch",
         lambda *args, **kwargs: [[source("a.md")]],
     )
 
@@ -243,9 +249,12 @@ def test_hybrid_semantic_failure_preserves_existing_dataset_output(
             "semantic source_index_revision does not match the canonical index"
         )
 
-    monkeypatch.setattr("src.adapters.cli.search_semantic_index_batch", stale)
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.search_semantic_index_batch",
+        stale,
+    )
+    monkeypatch.setattr(
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: FakeEmbedder(),
     )
     dataset_path = tmp_path / "questions.json"

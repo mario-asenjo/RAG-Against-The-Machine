@@ -442,7 +442,7 @@ def test_index_semantic_flag_builds_from_the_saved_canonical_store(
     output = tmp_path / "processed"
     embedder = FakeEmbedder()
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: embedder,
     )
 
@@ -483,7 +483,7 @@ def test_semantic_search_cli_and_dataset_preserve_output_contract(
         embedder,
     )
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: embedder,
     )
     cli = RagCli()
@@ -533,7 +533,7 @@ def test_incremental_semantic_cli_advances_to_sqlite_revision(
     output = tmp_path / "processed"
     embedder = FakeEmbedder()
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: embedder,
     )
     cli = RagCli()
@@ -577,7 +577,7 @@ def test_lexical_fallback_removes_projection_when_revision_resets(
     output = tmp_path / "processed"
     embedder = FakeEmbedder()
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: embedder,
     )
     cli = RagCli()
@@ -624,7 +624,7 @@ def test_semantic_rebuild_on_lexical_noop_does_not_replace_sqlite(
     before = lexical_path.read_bytes()
     embedder = FakeEmbedder()
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: embedder,
     )
 
@@ -655,7 +655,7 @@ def test_semantic_failure_leaves_detectable_stale_artifact(
     output = tmp_path / "processed"
     embedder = FakeEmbedder()
     monkeypatch.setattr(
-        "src.adapters.cli.MiniLmEmbedder",
+        "src.infrastructure.pipeline.MiniLmEmbedder",
         lambda **kwargs: embedder,
     )
     cli = RagCli()

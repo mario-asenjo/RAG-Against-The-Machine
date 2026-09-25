@@ -41,9 +41,9 @@ Bonus — Optional enhancements. Mandatory readiness remains frozen at merged ba
   Recall@1/3/5/10.
 
 ## Active issue
-[#20 Bonus: add retrieval cache for repeated queries](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/20)
-is implemented on `feat/issue-20-persistent-retrieval-cache` and undergoing final
-validation. Cache use is explicit; uncached lexical BM25 remains the default.
+[#56 Refactor: extract adapter-neutral pipeline orchestration](https://github.com/mario-asenjo/RAG-Against-The-Machine/issues/56)
+is implemented on `refactor/issue-56-extract-pipeline-orchestration` as the architecture
+prerequisite for parent HTTP bonus #21. No HTTP code or dependency is included.
 
 - `answer` performs one existing BM25 search and hydrates only exact SQLite
   `(file_path, first_character_index, last_character_index)` source tuples.
@@ -203,9 +203,21 @@ validation. Cache use is explicit; uncached lexical BM25 remains the default.
   46 files, Flake8, context validation and `git diff --check` pass. Independent
   Ponytail-full review returned ACEPTAR with no blocking finding.
 
+- #56 introduces adapter-neutral `IndexCommand`, `RetrievalCommand`, `AnswerCommand`
+  and structured `IndexOperationResult` contracts. `RagApplication` owns shared Pydantic
+  orchestration through one cohesive `PipelineOperations` port; concrete corpus/SQLite /
+  MiniLM/cache/Qwen effects live in `LocalPipelineOperations`.
+- Fire signatures, formatting, progress, file outputs and error translation remain at the
+  CLI boundary. `answer_dataset` still consumes prior results without retrieval.
+- Five direct seam/architecture tests pass. Full `make check` passes with 190 tests;
+  strict mypy over 51 files, Flake8, context validation and `git diff --check` pass.
+- Fresh public lexical/semantic/hybrid Docs/Code JSON hashes match all six frozen values
+  exactly after extraction. No dependency, artifact format, ranking or private-data run
+  was added. Independent Ponytail-full architecture review returned ACEPTAR.
+
 ## Next candidate
-After #20 is reviewed and merged, #21 may add the final local HTTP adapter over stable
-Pydantic use cases. Do not duplicate retrieval/cache business logic in routes.
+After #56 is reviewed and merged, parent #21 will choose FastAPI routers versus stdlib
+`HTTPServer` against the real shared seam, then add only the local HTTP adapter.
 
 Planned bonus order after mandatory readiness is #19 -> #17 -> #18 -> #20 -> #21.
 

@@ -2,6 +2,25 @@
 
 Append compact, factual entries. Do not duplicate full PR descriptions.
 
+## 2026-09-25 — #56 adapter-neutral orchestration extraction
+- Verified #20 / PR #55 merged at `9f0fb32`, fast-forwarded main, created child #56
+  linked from parent #21, added it to Project #12 in In Progress, and opened
+  `refactor/issue-56-extract-pipeline-orchestration`. The user-owned roadmap prompt
+  remains untracked and untouched.
+- Captured a 125-test indexing/retrieval/answer baseline, then moved full/incremental /
+  semantic lifecycle and lexical/semantic/hybrid/cache selection out of `RagCli`.
+- Added Pydantic index/retrieval/answer commands, structured index outcomes,
+  `RagApplication`, one cohesive `PipelineOperations` port, and concrete
+  `LocalPipelineOperations`. Fire signatures, progress, formatting, files and errors stay
+  adapter-owned; `answer_dataset` and evaluation remain unchanged.
+- Added direct shared single/batch/answer tests and a no-peer-adapter import guard. No HTTP
+  route/server/framework/dependency was added; FastAPI versus stdlib remains a #21
+  decision after this seam merges.
+- Full gates passed with 190 tests and strict mypy over 51 files. All six public lexical /
+  semantic / hybrid Docs/Code JSON hashes exactly matched their frozen values; no private
+  data or campus run was used. Independent Ponytail-full architecture review returned
+  ACEPTAR with no blocking ceremony or scope finding.
+
 ## 2026-09-24 — #20 persistent retrieval cache
 - Verified #18 / PR #54 merged, fast-forwarded local main, created
   `feat/issue-20-persistent-retrieval-cache`, removed the resolved blocked label,
